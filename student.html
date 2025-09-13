@@ -41,35 +41,29 @@
     const data = await response.text();
     const rows = data.split("\n").map(r => r.split(","));
 
-    // Create header map: normalize headers to lowercase and underscores
-    const headerMap = {};
-    rows[0].forEach((h, i) => {
-      headerMap[h.trim().toLowerCase().replace(/\s+/g, "_")] = i;
-    });
-
-    // Build records
+    const headers = rows[0].map(h => h.trim());
     const records = rows.slice(1).map(r => {
       let obj = {};
-      for (const key in headerMap) {
-        obj[key] = r[headerMap[key]] ? r[headerMap[key]].trim() : "";
-      }
+      headers.forEach((h, i) => {
+        obj[h] = r[i] ? r[i].trim() : "";
+      });
       return obj;
     });
 
-    return {records, headerMap};
+    return {records, headers};
   }
 
   document.getElementById("searchForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const idInput = document.getElementById("studentId").value.trim().toLowerCase();
-    const {records, headerMap} = await fetchAttendance();
+    const {records, headers} = await fetchAttendance();
 
-    const idCol = "id_number"; // normalized column
-    const timestampCol = "timestamp"; 
-    const rollCol = "roll_number"; 
-    const statusCol = "status"; 
+    // Columns
+    const idCol = "ID number";
+    const timestampCol = "Timestamp";
+    const rollCol = "Roll number";
 
-    // All unique class dates
+    // Unique dates
     const allClasses = [...new Set(records.map(r => r[timestampCol]))];
 
     // Filter records for this student
@@ -109,14 +103,13 @@
     let attended = 0;
     allClasses.forEach(date => {
       if (recordMap[date]) {
-        const status = recordMap[date][statusCol] || "Present";
-        if (status.toLowerCase() === "present") attended++;
+        attended++;
         table += `
           <tr>
             <td class="border border-gray-300 px-4 py-2">${date}</td>
-            <td class="border border-gray-300 px-4 py-2">${recordMap[date][rollCol] || "-"}</td>
+            <td class="border border-gray-300 px-4 py-2">${recordMap[date][rollCol]}</td>
             <td class="border border-gray-300 px-4 py-2">${recordMap[date][idCol]}</td>
-            <td class="border border-gray-300 px-4 py-2 ${status.toLowerCase() === 'present' ? 'text-green-600' : 'text-red-600 font-bold'}">${status}</td>
+            <td class="border border-gray-300 px-4 py-2 text-green-600 font-bold">Present</td>
           </tr>
         `;
       } else {
@@ -125,7 +118,7 @@
             <td class="border border-gray-300 px-4 py-2">${date}</td>
             <td class="border border-gray-300 px-4 py-2">-</td>
             <td class="border border-gray-300 px-4 py-2">${idInput}</td>
-            <td class="border border-gray-300 px-4 py-2 text-red-600 font-bold">Absent</td>
+            <td class="border border-red-600 px-4 py-2 font-bold">Absent</td>
           </tr>
         `;
       }
