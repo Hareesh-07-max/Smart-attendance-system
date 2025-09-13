@@ -12,23 +12,22 @@
 </head>
 <body>
   <h2>Student Attendance Portal</h2>
-  <input type="text" id="studentId" placeholder="Enter Student ID">
+  <input type="text" id="rollNumber" placeholder="Enter Roll Number">
   <button onclick="searchAttendance()">Search</button>
 
   <div id="result"></div>
 
   <script>
     async function searchAttendance() {
-      const studentId = document.getElementById("studentId").value.trim();
+      const roll = document.getElementById("rollNumber").value.trim();
       const resultDiv = document.getElementById("result");
       resultDiv.innerHTML = "";
 
-      if (!studentId) {
-        alert("Please enter your Student ID");
+      if (!roll) {
+        alert("Please enter your Roll Number");
         return;
       }
 
-      // Your published CSV link
       const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
 
       try {
@@ -36,29 +35,29 @@
         const text = await response.text();
         const rows = text.split("\n").map(r => r.split(","));
 
-        // Assuming first row is headers
-        const headers = rows[0];
+        const headers = rows[0];   // ["Timestamp", "Roll Number"]
         const dataRows = rows.slice(1);
 
-        // Filter records by ID
-        const records = dataRows.filter(row => row[0] === studentId);
+        // Filter by Roll Number
+        const records = dataRows.filter(row => row[1] === roll);
 
         if (records.length === 0) {
-          resultDiv.innerHTML = `<p style="color:red;">No records found for ID: ${studentId}</p>`;
+          resultDiv.innerHTML = `<p style="color:red;">No records found for Roll Number: ${roll}</p>`;
           return;
         }
 
-        // Calculate attendance percentage
-        let presentCount = 0;
-        let totalCount = records.length;
-
-        records.forEach(r => {
-          if (r[2] && r[2].toLowerCase() === "present") presentCount++;
+        // Count total classes = max attendance any student has
+        const rollCounts = {};
+        dataRows.forEach(r => {
+          if (!rollCounts[r[1]]) rollCounts[r[1]] = 0;
+          rollCounts[r[1]]++;
         });
+        const totalClasses = Math.max(...Object.values(rollCounts));
 
-        let percentage = ((presentCount / totalCount) * 100).toFixed(2);
+        const presentCount = records.length;
+        const percentage = ((presentCount / totalClasses) * 100).toFixed(2);
 
-        // Show results in a table
+        // Build table
         let table = "<table><tr>";
         headers.forEach(h => table += `<th>${h}</th>`);
         table += "</tr>";
@@ -71,7 +70,8 @@
         table += "</table>";
 
         resultDiv.innerHTML = `
-          <h3>Attendance for ID: ${studentId}</h3>
+          <h3>Attendance for Roll Number: ${roll}</h3>
+          <p><b>Present:</b> ${presentCount} / ${totalClasses} classes</p>
           <p><b>Attendance Percentage:</b> ${percentage}%</p>
           ${table}
         `;
