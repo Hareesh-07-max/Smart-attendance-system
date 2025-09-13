@@ -59,9 +59,9 @@
     const idInput = document.getElementById("studentId").value.trim();
     const records = await fetchAttendance();
 
-    // 🔹 Only use the last "ID number" column
+    // 🔹 Match "ID number" column safely (ignore case + spaces)
     const studentRecords = records.filter(
-      (r) => r["ID number"] === idInput
+      (r) => (r["ID number"] || "").trim().toLowerCase() === idInput.toLowerCase()
     );
 
     const resultsDiv = document.getElementById("results");
