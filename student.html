@@ -4,78 +4,103 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Attendance Portal</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
-    h2 { color: #2c3e50; }
-    table { width: 80%; margin: 20px auto; border-collapse: collapse; }
-    th, td { border: 1px solid #ddd; padding: 8px; }
-    th { background-color: #3498db; color: white; }
-    tr:nth-child(even) { background-color: #f2f2f2; }
-    #error { color: red; margin-top: 10px; }
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h2>Student Attendance Portal</h2>
-  <input type="text" id="rollInput" placeholder="Enter your Roll Number (e.g., R230557)">
-  <button onclick="searchAttendance()">Search</button>
-  <p id="error"></p>
-  <div id="result"></div>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-6">
+  <div class="bg-white shadow-xl rounded-2xl p-8 w-full max-w-3xl">
+    <h1 class="text-2xl font-bold text-center text-indigo-700 mb-6">📊 Student Attendance Portal</h1>
+
+    <!-- Input -->
+    <div class="flex items-center gap-2 mb-6">
+      <input id="studentIdInput" type="text" placeholder="Enter your ID Number (e.g. R230557)" 
+        class="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+      <button onclick="searchAttendance()" 
+        class="bg-indigo-600 text-white px-4 py-3 rounded-lg hover:bg-indigo-700 transition">Search</button>
+    </div>
+
+    <!-- Results -->
+    <div id="resultArea" class="hidden">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">Attendance Records</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full border border-gray-300 rounded-lg overflow-hidden">
+          <thead class="bg-indigo-100">
+            <tr>
+              <th class="border px-4 py-2">Date/Time</th>
+              <th class="border px-4 py-2">ID Number</th>
+              <th class="border px-4 py-2">Status</th>
+            </tr>
+          </thead>
+          <tbody id="attendanceTable" class="text-center"></tbody>
+        </table>
+      </div>
+
+      <div class="mt-6 bg-green-50 border border-green-200 p-4 rounded-lg">
+        <p id="percentageText" class="text-green-800 font-medium"></p>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="errorArea" class="hidden mt-6">
+      <div class="bg-red-50 border border-red-200 p-4 rounded-lg text-red-700">
+        ❌ No records found for this ID number.
+      </div>
+    </div>
+  </div>
 
   <script>
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
+
+    async function fetchCSV() {
+      const response = await fetch(sheetUrl);
+      const data = await response.text();
+      return data.split("\n").map(row => row.split(","));
+    }
+
     async function searchAttendance() {
-      const roll = document.getElementById("rollInput").value.trim();
-      const error = document.getElementById("error");
-      const result = document.getElementById("result");
-      result.innerHTML = "";
-      error.innerText = "";
+      const studentId = document.getElementById("studentIdInput").value.trim().toUpperCase();
+      const tableBody = document.getElementById("attendanceTable");
+      const resultArea = document.getElementById("resultArea");
+      const errorArea = document.getElementById("errorArea");
+      const percentageText = document.getElementById("percentageText");
 
-      if (!roll) {
-        error.innerText = "Please enter your Roll Number.";
-        return;
-      }
+      tableBody.innerHTML = "";
+      resultArea.classList.add("hidden");
+      errorArea.classList.add("hidden");
 
-      const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
+      if (!studentId) return;
 
-      try {
-        const response = await fetch(csvUrl);
-        const data = await response.text();
-        const rows = data.split("\n").map(r => r.split(","));
+      const rows = await fetchCSV();
 
-        const headers = rows[0];
-        const idIndex = headers.indexOf("ID Number");
-        const rollIndex = headers.indexOf("Roll Number");
-        const timeIndex = headers.indexOf("Timestamp");
+      // First row = header
+      const header = rows[0];
+      const dateIndex = 0;  
+      const idIndex = 1;    // ✅ First "ID Number" column only
+      const statusIndex = 2; // Assuming 3rd column is Status (Present/Absent)
 
-        if (idIndex === -1 || rollIndex === -1 || timeIndex === -1) {
-          error.innerText = "CSV format error. Check column names.";
-          return;
+      let total = 0, present = 0;
+      rows.slice(1).forEach(row => {
+        if (row[idIndex] && row[idIndex].trim().toUpperCase() === studentId) {
+          total++;
+          if (row[statusIndex] && row[statusIndex].toLowerCase().includes("present")) {
+            present++;
+          }
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="border px-4 py-2">${row[dateIndex]}</td>
+            <td class="border px-4 py-2">${row[idIndex]}</td>
+            <td class="border px-4 py-2">${row[statusIndex]}</td>
+          `;
+          tableBody.appendChild(tr);
         }
+      });
 
-        const records = rows.slice(1).filter(r => r[rollIndex] === roll);
-
-        if (records.length === 0) {
-          error.innerText = `No records found for Roll Number ${roll}`;
-          return;
-        }
-
-        let table = "<table><tr><th>Timestamp</th><th>ID Number</th><th>Roll Number</th></tr>";
-        records.forEach(r => {
-          table += `<tr><td>${r[timeIndex]}</td><td>${r[idIndex]}</td><td>${r[rollIndex]}</td></tr>`;
-        });
-        table += "</table>";
-
-        // Attendance percentage
-        const totalClasses = rows.slice(1).length;
-        const percentage = ((records.length / totalClasses) * 100).toFixed(2);
-
-        result.innerHTML = `<h3>Attendance Records for Roll Number ${roll}</h3>` + table +
-                           `<p><b>Total Present:</b> ${records.length}<br>
-                           <b>Total Classes:</b> ${totalClasses}<br>
-                           <b>Attendance %:</b> ${percentage}%</p>`;
-
-      } catch (err) {
-        error.innerText = "Error fetching data.";
-        console.error(err);
+      if (total > 0) {
+        const percentage = ((present / total) * 100).toFixed(2);
+        percentageText.textContent = `✅ Attendance: ${present}/${total} (${percentage}%)`;
+        resultArea.classList.remove("hidden");
+      } else {
+        errorArea.classList.remove("hidden");
       }
     }
   </script>
