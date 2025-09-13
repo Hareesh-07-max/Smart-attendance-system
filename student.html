@@ -19,12 +19,12 @@
 
   <script>
     async function searchAttendance() {
-      const roll = document.getElementById("rollNumber").value.trim();
+      const roll = document.getElementById("idnumber").value.trim();
       const resultDiv = document.getElementById("result");
       resultDiv.innerHTML = "";
 
       if (!roll) {
-        alert("Please enter your Roll Number");
+        alert("Please enter your ID Number");
         return;
       }
 
@@ -39,7 +39,7 @@
         const dataRows = rows.slice(1);
 
         // Filter by Roll Number
-        const records = dataRows.filter(row => row[1] === roll);
+        const records = dataRows.filter(row => row[2] === roll);
 
         if (records.length === 0) {
           resultDiv.innerHTML = `<p style="color:red;">No records found for Roll Number: ${roll}</p>`;
@@ -49,8 +49,8 @@
         // Count total classes = max attendance any student has
         const rollCounts = {};
         dataRows.forEach(r => {
-          if (!rollCounts[r[1]]) rollCounts[r[1]] = 0;
-          rollCounts[r[1]]++;
+          if (!rollCounts[r[2]]) rollCounts[r[2]] = 0;
+          rollCounts[r[2]]++;
         });
         const totalClasses = Math.max(...Object.values(rollCounts));
 
