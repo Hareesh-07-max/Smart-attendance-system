@@ -73,7 +73,7 @@
       return;
     }
 
-    // Show records in table
+    // Table generation
     let table = `
       <table class="w-full border-collapse border border-gray-300 mt-4">
         <thead class="bg-gray-100">
@@ -81,6 +81,7 @@
             <th class="border border-gray-300 px-4 py-2">Date</th>
             <th class="border border-gray-300 px-4 py-2">Roll Number</th>
             <th class="border border-gray-300 px-4 py-2">ID Number</th>
+            <th class="border border-gray-300 px-4 py-2">Status</th>
           </tr>
         </thead>
         <tbody>
@@ -91,14 +92,16 @@
           <td class="border border-gray-300 px-4 py-2">${r["Timestamp"]}</td>
           <td class="border border-gray-300 px-4 py-2">${r["Roll number"]}</td>
           <td class="border border-gray-300 px-4 py-2">${r["ID number"]}</td>
+          <td class="border border-gray-300 px-4 py-2">${r["Status"] || "Present"}</td>
         </tr>
       `;
     });
     table += "</tbody></table>";
 
-    // Attendance percentage based on unique dates
+    // Attendance percentage calculation
     const totalClasses = [...new Set(records.map(r => r["Timestamp"]))].length;
-    const percentage = ((studentRecords.length / totalClasses) * 100).toFixed(2);
+    const attended = studentRecords.filter(r => (r["Status"] || "Present") === "Present").length;
+    const percentage = ((attended / totalClasses) * 100).toFixed(2);
 
     resultsDiv.innerHTML = `
       <p class="text-green-600 font-medium">✅ Found ${studentRecords.length} records for ID ${idInput}</p>
