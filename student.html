@@ -41,7 +41,6 @@
     const data = await response.text();
     const rows = data.split("\n").map(r => r.split(","));
 
-    // Headers
     const headers = rows[0].map(h => h.trim());
     const records = rows.slice(1).map(r => {
       let obj = {};
@@ -50,7 +49,6 @@
       });
       return obj;
     });
-
     return records;
   }
 
@@ -59,9 +57,11 @@
     const idInput = document.getElementById("studentId").value.trim();
     const records = await fetchAttendance();
 
-    // 🔹 Match "ID number" column safely (ignore case + spaces)
+    const allClasses = [...new Set(records.map(r => r["Timestamp"]))];
+
+    // Records for this student
     const studentRecords = records.filter(
-      (r) => (r["ID number"] || "").trim().toLowerCase() === idInput.toLowerCase()
+      r => (r["ID number"] || "").trim().toLowerCase() === idInput.toLowerCase()
     );
 
     const resultsDiv = document.getElementById("results");
@@ -73,7 +73,13 @@
       return;
     }
 
-    // Table generation
+    // Create a map of student records by date
+    const recordMap = {};
+    studentRecords.forEach(r => {
+      recordMap[r["Timestamp"]] = r;
+    });
+
+    // Build table, including absent classes
     let table = `
       <table class="w-full border-collapse border border-gray-300 mt-4">
         <thead class="bg-gray-100">
@@ -86,25 +92,39 @@
         </thead>
         <tbody>
     `;
-    studentRecords.forEach(r => {
-      table += `
-        <tr>
-          <td class="border border-gray-300 px-4 py-2">${r["Timestamp"]}</td>
-          <td class="border border-gray-300 px-4 py-2">${r["Roll number"]}</td>
-          <td class="border border-gray-300 px-4 py-2">${r["ID number"]}</td>
-          <td class="border border-gray-300 px-4 py-2">${r["Status"] || "Present"}</td>
-        </tr>
-      `;
+
+    let attended = 0;
+    allClasses.forEach(date => {
+      if (recordMap[date]) {
+        const status = recordMap[date]["Status"] || "Present";
+        if (status.toLowerCase() === "present") attended++;
+        table += `
+          <tr>
+            <td class="border border-gray-300 px-4 py-2">${date}</td>
+            <td class="border border-gray-300 px-4 py-2">${recordMap[date]["Roll number"]}</td>
+            <td class="border border-gray-300 px-4 py-2">${recordMap[date]["ID number"]}</td>
+            <td class="border border-gray-300 px-4 py-2 text-green-600">${status}</td>
+          </tr>
+        `;
+      } else {
+        // Absent class
+        table += `
+          <tr>
+            <td class="border border-gray-300 px-4 py-2">${date}</td>
+            <td class="border border-gray-300 px-4 py-2">-</td>
+            <td class="border border-gray-300 px-4 py-2">${idInput}</td>
+            <td class="border border-gray-300 px-4 py-2 text-red-600 font-bold">Absent</td>
+          </tr>
+        `;
+      }
     });
+
     table += "</tbody></table>";
 
-    // Attendance percentage calculation
-    const totalClasses = [...new Set(records.map(r => r["Timestamp"]))].length;
-    const attended = studentRecords.filter(r => (r["Status"] || "Present") === "Present").length;
-    const percentage = ((attended / totalClasses) * 100).toFixed(2);
+    const percentage = ((attended / allClasses.length) * 100).toFixed(2);
 
     resultsDiv.innerHTML = `
-      <p class="text-green-600 font-medium">✅ Found ${studentRecords.length} records for ID ${idInput}</p>
+      <p class="text-green-600 font-medium">✅ Found ${studentRecords.length} recorded classes for ID ${idInput}</p>
       <p class="text-blue-600 font-medium">📊 Attendance Percentage: ${percentage}%</p>
       ${table}
     `;
