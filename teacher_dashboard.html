@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+  <!-- Navbar -->
+  <header class="flex justify-between items-center bg-white shadow-md p-4 rounded-xl mb-6">
+    <h1 class="text-xl font-bold text-gray-800">👩‍🏫 Teacher Dashboard</h1>
+    <button onclick="logout()" 
+      class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+      Logout
+    </button>
+  </header>
+
+  <!-- Welcome Section -->
+  <div class="bg-white p-6 rounded-xl shadow-md mb-6">
+    <h2 class="text-2xl font-semibold text-gray-800">Welcome, Teacher!</h2>
+    <p class="text-gray-600 mt-2">Here you can manage attendance and view student records.</p>
+  </div>
+
+  <!-- Actions -->
+  <div class="grid md:grid-cols-2 gap-6">
+    <!-- Student Records -->
+    <div class="bg-white p-6 rounded-xl shadow-md">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">📊 Student Attendance Records</h3>
+      <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pubhtml?widget=true&amp;headers=false" 
+        width="100%" height="300px"></iframe>
+    </div>
+
+    <!-- Quick Tools -->
+    <div class="bg-white p-6 rounded-xl shadow-md">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">⚙️ Quick Actions</h3>
+      <ul class="space-y-3">
+        <li><button class="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition">📌 Mark Attendance</button></li>
+        <li><button class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition">👨‍🎓 View Students</button></li>
+        <li><button class="w-full bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition">📅 Generate Report</button></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Back to Home -->
+  <div class="mt-6 text-center">
+    <a href="../index.html" 
+       class="inline-block bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+      ⬅️ Back to Home
+    </a>
+  </div>
+
+  <script>
+    function logout() {
+      alert("You have been logged out!");
+      window.location.href = "teacher_login.html";
+    }
+  </script>
+</body>
+</html>
