@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col items-center p-6">
-  
+
   <h1 class="text-2xl font-bold text-gray-800 mb-6">📌 Student Attendance Portal</h1>
 
   <!-- Search Box -->
@@ -41,27 +41,40 @@
     const data = await response.text();
     const rows = data.split("\n").map(r => r.split(","));
 
-    const headers = rows[0].map(h => h.trim());
+    // Create header map: normalize headers to lowercase and underscores
+    const headerMap = {};
+    rows[0].forEach((h, i) => {
+      headerMap[h.trim().toLowerCase().replace(/\s+/g, "_")] = i;
+    });
+
+    // Build records
     const records = rows.slice(1).map(r => {
       let obj = {};
-      headers.forEach((h, i) => {
-        obj[h] = r[i] ? r[i].trim() : "";
-      });
+      for (const key in headerMap) {
+        obj[key] = r[headerMap[key]] ? r[headerMap[key]].trim() : "";
+      }
       return obj;
     });
-    return records;
+
+    return {records, headerMap};
   }
 
   document.getElementById("searchForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const idInput = document.getElementById("studentId").value.trim();
-    const records = await fetchAttendance();
+    const idInput = document.getElementById("studentId").value.trim().toLowerCase();
+    const {records, headerMap} = await fetchAttendance();
 
-    const allClasses = [...new Set(records.map(r => r["Timestamp"]))];
+    const idCol = "id_number"; // normalized column
+    const timestampCol = "timestamp"; 
+    const rollCol = "roll_number"; 
+    const statusCol = "status"; 
 
-    // Records for this student
+    // All unique class dates
+    const allClasses = [...new Set(records.map(r => r[timestampCol]))];
+
+    // Filter records for this student
     const studentRecords = records.filter(
-      r => (r["ID number"] || "").trim().toLowerCase() === idInput.toLowerCase()
+      r => (r[idCol] || "").toLowerCase() === idInput
     );
 
     const resultsDiv = document.getElementById("results");
@@ -73,13 +86,13 @@
       return;
     }
 
-    // Create a map of student records by date
+    // Map student records by date
     const recordMap = {};
     studentRecords.forEach(r => {
-      recordMap[r["Timestamp"]] = r;
+      recordMap[r[timestampCol]] = r;
     });
 
-    // Build table, including absent classes
+    // Build table
     let table = `
       <table class="w-full border-collapse border border-gray-300 mt-4">
         <thead class="bg-gray-100">
@@ -96,18 +109,17 @@
     let attended = 0;
     allClasses.forEach(date => {
       if (recordMap[date]) {
-        const status = recordMap[date]["Status"] || "Present";
+        const status = recordMap[date][statusCol] || "Present";
         if (status.toLowerCase() === "present") attended++;
         table += `
           <tr>
             <td class="border border-gray-300 px-4 py-2">${date}</td>
-            <td class="border border-gray-300 px-4 py-2">${recordMap[date]["Roll number"]}</td>
-            <td class="border border-gray-300 px-4 py-2">${recordMap[date]["ID number"]}</td>
-            <td class="border border-gray-300 px-4 py-2 text-green-600">${status}</td>
+            <td class="border border-gray-300 px-4 py-2">${recordMap[date][rollCol] || "-"}</td>
+            <td class="border border-gray-300 px-4 py-2">${recordMap[date][idCol]}</td>
+            <td class="border border-gray-300 px-4 py-2 ${status.toLowerCase() === 'present' ? 'text-green-600' : 'text-red-600 font-bold'}">${status}</td>
           </tr>
         `;
       } else {
-        // Absent class
         table += `
           <tr>
             <td class="border border-gray-300 px-4 py-2">${date}</td>
