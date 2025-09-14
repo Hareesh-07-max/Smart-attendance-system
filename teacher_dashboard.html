@@ -3,77 +3,104 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Dashboard - Smart Attendance</title>
+  <title>Teacher Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-indigo-100 min-h-screen p-6">
 
-  <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">👩‍🏫 Teacher Dashboard</h1>
+  <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">👩‍🏫 Teacher Dashboard - Attendance Summary</h1>
 
-  <div class="bg-white p-6 rounded-xl shadow-md max-w-6xl mx-auto">
-    <h2 class="text-xl font-semibold text-gray-800 mb-4">📊 All Students Attendance</h2>
-    
-    <table class="min-w-full border border-gray-300">
-      <thead class="bg-indigo-200">
+  <!-- Attendance Summary Table -->
+  <div class="bg-white p-6 rounded-xl shadow-md overflow-x-auto">
+    <table class="w-full border-collapse border border-gray-300 text-center">
+      <thead class="bg-gray-200">
         <tr>
-          <th class="border border-gray-300 px-4 py-2">Roll Number</th>
-          <th class="border border-gray-300 px-4 py-2">Total Classes</th>
-          <th class="border border-gray-300 px-4 py-2">Present</th>
-          <th class="border border-gray-300 px-4 py-2">Attendance %</th>
+          <th class="border border-gray-300 px-2 py-1">ID Number</th>
+          <th class="border border-gray-300 px-2 py-1">Roll Number</th>
+          <th class="border border-gray-300 px-2 py-1">Total Classes</th>
+          <th class="border border-gray-300 px-2 py-1">Presents</th>
+          <th class="border border-gray-300 px-2 py-1">Attendance %</th>
+          <th class="border border-gray-300 px-2 py-1">Status</th>
         </tr>
       </thead>
-      <tbody id="attendanceTable" class="text-center bg-white"></tbody>
+      <tbody id="summaryBody"></tbody>
     </table>
   </div>
 
   <script>
-    async function loadAttendance() {
-      // ✅ Your actual sheet link
-      const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
+    // ✅ Your Google Sheet CSV link
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
 
-      const response = await fetch(csvUrl);
-      const data = await response.text();
+    // Define schedule (08 Sep 2025 to 28 Sep 2025, excluding Sundays)
+    const startDate = new Date("2025-09-08");
+    const endDate = new Date("2025-09-28");
+    const today = new Date();
 
-      const rows = data.split("\n").map(r => r.split(","));
-      const header = rows[0]; 
-      const rollIndex = header.indexOf("Roll Number");
-
-      if (rollIndex === -1) {
-        alert("⚠️ 'Roll Number' column not found in sheet!");
-        return;
+    function calculateTotalClasses() {
+      let count = 0;
+      for (let d = new Date(startDate); d <= endDate && d <= today; d.setDate(d.getDate() + 1)) {
+        if (d.getDay() !== 0) count++; // Exclude Sundays
       }
-
-      let records = {};
-
-      rows.slice(1).forEach(row => {
-        const roll = row[rollIndex]?.trim();
-        if (roll) {
-          if (!records[roll]) {
-            records[roll] = { total: 0, present: 0 };
-          }
-          records[roll].total++;
-          records[roll].present++; // Every entry = Present
-        }
-      });
-
-      const tbody = document.getElementById("attendanceTable");
-      tbody.innerHTML = "";
-
-      Object.keys(records).forEach(roll => {
-        const { total, present } = records[roll];
-        const percentage = ((present / total) * 100).toFixed(2);
-
-        const row = `<tr>
-          <td class="border border-gray-300 px-4 py-2">${roll}</td>
-          <td class="border border-gray-300 px-4 py-2">${total}</td>
-          <td class="border border-gray-300 px-4 py-2">${present}</td>
-          <td class="border border-gray-300 px-4 py-2">${percentage}%</td>
-        </tr>`;
-        tbody.innerHTML += row;
-      });
+      return count;
     }
 
-    loadAttendance();
+    async function loadSummary() {
+      try {
+        const res = await fetch(csvUrl);
+        const text = await res.text();
+        const rows = text.trim().split("\n").map(r => r.split(","));
+
+        const headers = rows[0];
+        const timestampIndex = headers.indexOf("Timestamp");
+        const rollIndex = headers.indexOf("Roll number");
+        const idIndex = headers.indexOf("ID number");
+
+        if (timestampIndex === -1 || rollIndex === -1 || idIndex === -1) {
+          alert("CSV format error: Expected 'Timestamp', 'Roll number', 'ID number' columns.");
+          return;
+        }
+
+        const data = {};
+        const totalClasses = calculateTotalClasses();
+
+        rows.slice(1).forEach(row => {
+          const id = row[idIndex].trim().toUpperCase();
+          const roll = row[rollIndex].trim();
+          if (!id) return;
+
+          if (!data[id]) {
+            data[id] = { roll, presents: 0 };
+          }
+          data[id].presents++;
+        });
+
+        const tbody = document.getElementById("summaryBody");
+        tbody.innerHTML = "";
+
+        Object.entries(data).forEach(([id, info]) => {
+          const percent = totalClasses > 0 ? ((info.presents / totalClasses) * 100).toFixed(2) : 0;
+          const statusColor = percent < 75 ? "text-red-600 font-bold" : "text-green-600 font-bold";
+          const tr = document.createElement("tr");
+
+          tr.innerHTML = `
+            <td class="border border-gray-300 px-2 py-1">${id}</td>
+            <td class="border border-gray-300 px-2 py-1">${info.roll}</td>
+            <td class="border border-gray-300 px-2 py-1">${totalClasses}</td>
+            <td class="border border-gray-300 px-2 py-1">${info.presents}</td>
+            <td class="border border-gray-300 px-2 py-1">${percent}%</td>
+            <td class="border border-gray-300 px-2 py-1 ${statusColor}">${percent < 75 ? "❌ Low" : "✅ Good"}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      } catch (err) {
+        console.error("Error loading data:", err);
+        alert("Failed to load data. Check your CSV link.");
+      }
+    }
+
+    loadSummary();
   </script>
+
 </body>
 </html>
