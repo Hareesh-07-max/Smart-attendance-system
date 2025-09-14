@@ -51,21 +51,21 @@
       const data = await res.text();
 
       const rows = data.split("\n").map(r => r.split(","));
-      const headers = rows[0];
+      const headers = rows[0].map(h => h.replace(/"/g, '').trim()); // remove quotes from headers
       const dateIndex = headers.indexOf("Timestamp");
       const idIndex = headers.indexOf("ID number");
 
       let studentDates = new Set();
       rows.slice(1).forEach(row => {
-        let id = row[idIndex]?.trim();
-        let date = row[dateIndex]?.split(" ")[0]; // yyyy-mm-dd
+        let id = row[idIndex]?.replace(/"/g, '').trim(); // remove quotes
+        let date = row[dateIndex]?.replace(/"/g, '').split(" ")[0]; // yyyy-mm-dd
         if (id === studentId && date) studentDates.add(date);
       });
 
-      // Generate schedule (Mon–Sat)
       const classDates = generateClassDates(startDate, endDate);
 
       let presentDays = 0;
+      let todayStr = new Date().toISOString().split("T")[0];
       let table = `
         <p class="mb-2 font-semibold">Attendance for <span class="text-blue-600">${studentId}</span></p>
         <table class="w-full border border-gray-300 text-sm">
@@ -78,8 +78,9 @@
       classDates.forEach(date => {
         let status = studentDates.has(date) ? "Present" : "Absent";
         if (status === "Present") presentDays++;
+        let rowClass = date === todayStr ? "bg-yellow-100" : "";
         table += `
-          <tr>
+          <tr class="${rowClass}">
             <td class="border px-2 py-1">${date}</td>
             <td class="border px-2 py-1 ${status === "Present" ? "text-green-600 font-bold" : "text-red-600 font-bold"}">${status}</td>
           </tr>
