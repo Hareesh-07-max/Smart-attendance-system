@@ -53,7 +53,7 @@
       const rows = data.split("\n").map(r => r.split(","));
       const headers = rows[0];
       const dateIndex = headers.indexOf("Timestamp");
-      const idIndex = headers.indexOf("ID Number");
+      const idIndex = headers.indexOf("ID number");
 
       let studentDates = new Set();
       rows.slice(1).forEach(row => {
