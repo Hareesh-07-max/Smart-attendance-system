@@ -3,91 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Attendance</title>
+  <title>Student Attendance Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col items-center p-6">
-  
-  <h1 class="text-2xl font-bold text-gray-800 mb-6">📌 Student Attendance Portal</h1>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-6">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl">
+    <h1 class="text-2xl font-bold mb-4 text-center">🎓 Student Attendance Portal</h1>
 
-  <!-- Search Box -->
-  <div class="bg-white p-6 rounded-xl shadow-md max-w-lg w-full text-center mb-8">
-    <label for="studentId" class="block text-gray-700 mb-2">Enter Your ID Number</label>
-    <input id="studentId" type="text" placeholder="e.g., R230557"
-      class="w-full border px-4 py-2 rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-    <button onclick="searchAttendance()"
-      class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Search</button>
-  </div>
+    <!-- Search box -->
+    <div class="flex space-x-2 mb-6 justify-center">
+      <input id="studentId" type="text" placeholder="Enter your ID Number"
+             class="px-4 py-2 border rounded-lg w-64">
+      <button onclick="fetchAttendance()"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Search</button>
+    </div>
 
-  <!-- Results -->
-  <div id="result" class="bg-white p-6 rounded-xl shadow-md w-full max-w-4xl hidden">
-    <h2 class="text-xl font-semibold text-gray-800 mb-4">📊 Attendance Records</h2>
-    <div id="percentage" class="text-lg font-bold mb-4"></div>
-    <table class="w-full border-collapse border border-gray-300">
-      <thead>
-        <tr class="bg-indigo-100">
-          <th class="border border-gray-300 px-4 py-2">Date</th>
-          <th class="border border-gray-300 px-4 py-2">ID Number</th>
-        </tr>
-      </thead>
-      <tbody id="records"></tbody>
-    </table>
+    <!-- Results will display here -->
+    <div id="result"></div>
   </div>
 
   <script>
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
 
-    async function searchAttendance() {
-      const id = document.getElementById("studentId").value.trim();
-      if (!id) {
-        alert("Please enter your ID number!");
-        return;
-      }
+    // Fixed schedule
+    const startDate = new Date("2025-09-08");
+    const endDate = new Date("2025-09-28");
 
-      const response = await fetch(sheetUrl);
-      const data = await response.text();
+    // Generate schedule dates excluding Sundays
+    function generateClassDates(start, end) {
+      let dates = [];
+      let today = new Date();
+      let cutoff = today < end ? today : end; // till today only
+
+      for (let d = new Date(start); d <= cutoff; d.setDate(d.getDate() + 1)) {
+        if (d.getDay() !== 0) { // exclude Sundays
+          dates.push(d.toISOString().split("T")[0]);
+        }
+      }
+      return dates;
+    }
+
+    async function fetchAttendance() {
+      const studentId = document.getElementById("studentId").value.trim();
+      if (!studentId) return alert("Enter a valid ID number!");
+
+      const res = await fetch(sheetUrl);
+      const data = await res.text();
+
       const rows = data.split("\n").map(r => r.split(","));
-
       const headers = rows[0];
+      const dateIndex = headers.indexOf("Timestamp");
       const idIndex = headers.indexOf("ID Number");
-      const timestampIndex = headers.indexOf("Timestamp");
 
-      if (idIndex === -1 || timestampIndex === -1) {
-        alert("CSV format error: Missing 'ID Number' or 'Timestamp' column.");
-        return;
-      }
+      let studentDates = new Set();
+      rows.slice(1).forEach(row => {
+        let id = row[idIndex]?.trim();
+        let date = row[dateIndex]?.split(" ")[0]; // yyyy-mm-dd
+        if (id === studentId && date) studentDates.add(date);
+      });
 
-      // Filter student records
-      const studentRecords = rows.slice(1).filter(r => r[idIndex] === id);
+      // Generate schedule (Mon–Sat)
+      const classDates = generateClassDates(startDate, endDate);
 
-      if (studentRecords.length === 0) {
-        document.getElementById("result").classList.remove("hidden");
-        document.getElementById("records").innerHTML = `<tr><td colspan="2" class="text-center p-4">❌ No records found for ID ${id}</td></tr>`;
-        document.getElementById("percentage").textContent = "";
-        return;
-      }
+      let presentDays = 0;
+      let table = `
+        <p class="mb-2 font-semibold">Attendance for <span class="text-blue-600">${studentId}</span></p>
+        <table class="w-full border border-gray-300 text-sm">
+          <tr class="bg-gray-200">
+            <th class="border px-2 py-1">Date</th>
+            <th class="border px-2 py-1">Status</th>
+          </tr>
+      `;
 
-      // Attendance % calculation
-      const allDates = [...new Set(rows.slice(1).map(r => r[timestampIndex].split(" ")[0]))]; 
-      const presentDates = [...new Set(studentRecords.map(r => r[timestampIndex].split(" ")[0]))]; 
-      const percentage = ((presentDates.length / allDates.length) * 100).toFixed(2);
+      classDates.forEach(date => {
+        let status = studentDates.has(date) ? "Present" : "Absent";
+        if (status === "Present") presentDays++;
+        table += `
+          <tr>
+            <td class="border px-2 py-1">${date}</td>
+            <td class="border px-2 py-1 ${status === "Present" ? "text-green-600 font-bold" : "text-red-600 font-bold"}">${status}</td>
+          </tr>
+        `;
+      });
 
-      // Decide color
-      let colorClass = percentage >= 75 ? "text-green-600" : "text-red-600";
+      let totalDays = classDates.length;
+      let percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(2) : 0;
+      let percentColor = percentage < 75 ? "text-red-600" : "text-green-600";
 
-      // Show percentage
-      document.getElementById("percentage").innerHTML = 
-        `Attendance: <span class="${colorClass}">${presentDates.length} / ${allDates.length} days (${percentage}%)</span>`;
+      table += `</table>
+        <p class="mt-3 font-bold">Total Classes (till today): ${totalDays}, Present: ${presentDays}, Absent: ${totalDays - presentDays}</p>
+        <p class="font-bold ${percentColor}">Attendance Percentage: ${percentage}%</p>
+      `;
 
-      // Show records table
-      document.getElementById("records").innerHTML = studentRecords.map(r => `
-        <tr>
-          <td class="border border-gray-300 px-4 py-2">${r[timestampIndex].split(" ")[0]}</td>
-          <td class="border border-gray-300 px-4 py-2">${r[idIndex]}</td>
-        </tr>
-      `).join("");
-
-      document.getElementById("result").classList.remove("hidden");
+      document.getElementById("result").innerHTML = table;
     }
   </script>
 </body>
