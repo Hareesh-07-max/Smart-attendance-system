@@ -48,30 +48,32 @@
       const res = await fetch(sheetUrl);
       const data = await res.text();
 
-      const rows = data.split("\n").map(r => r.split(","));
+      const rows = data.split(/\r?\n/).map(r => r.split(","));
       const headers = rows[0].map(h => h.replace(/"/g,'').trim());
       const dateIndex = headers.indexOf("Timestamp");
       const idIndex = headers.indexOf("ID number");
 
+      // store attendance as "ID|date" for exact matching
       let studentDates = new Set();
 
       rows.slice(1).forEach(row => {
+        if (!row || row.length <= Math.max(dateIndex, idIndex)) return;
         let id = row[idIndex]?.replace(/"/g,'').trim();
-        let csvDate = row[dateIndex]?.replace(/"/g,'').trim(); // dd/mm/yyyy
+        let csvDate = row[dateIndex]?.replace(/"/g,'').trim();
 
         if (id && csvDate) {
           const parts = csvDate.split("/");
           if (parts.length === 3) {
             const formattedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`.trim();
-            if (id === studentIdInput) studentDates.add(formattedDate);
+            studentDates.add(`${id}|${formattedDate}`);
           }
         }
       });
 
       const classDates = generateClassDates(startDate, endDate);
-
       let presentDays = 0;
       const todayStr = new Date().toISOString().split("T")[0];
+
       let table = `
         <p class="mb-2 font-semibold">Attendance for <span class="text-blue-600">${studentIdInput}</span></p>
         <table class="w-full border border-gray-300 text-sm">
@@ -82,7 +84,7 @@
       `;
 
       classDates.forEach(date => {
-        const status = studentDates.has(date) ? "Present" : "Absent";
+        const status = studentDates.has(`${studentIdInput}|${date}`) ? "Present" : "Absent";
         if (status === "Present") presentDays++;
         const rowClass = date === todayStr ? "bg-yellow-100" : "";
         table += `
@@ -106,4 +108,4 @@
     }
   </script>
 </body>
-</html>
+  </html>
