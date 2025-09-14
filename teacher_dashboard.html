@@ -4,103 +4,74 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teacher Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #eef; }
+    h2 { text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #007BFF; color: white; }
+    .low { background: #ffcdd2; }
+  </style>
 </head>
-<body class="bg-gradient-to-br from-gray-50 to-indigo-100 min-h-screen p-6">
-
-  <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">👩‍🏫 Teacher Dashboard - Attendance Summary</h1>
-
-  <!-- Attendance Summary Table -->
-  <div class="bg-white p-6 rounded-xl shadow-md overflow-x-auto">
-    <table class="w-full border-collapse border border-gray-300 text-center">
-      <thead class="bg-gray-200">
-        <tr>
-          <th class="border border-gray-300 px-2 py-1">ID Number</th>
-          <th class="border border-gray-300 px-2 py-1">Roll Number</th>
-          <th class="border border-gray-300 px-2 py-1">Total Classes</th>
-          <th class="border border-gray-300 px-2 py-1">Presents</th>
-          <th class="border border-gray-300 px-2 py-1">Attendance %</th>
-          <th class="border border-gray-300 px-2 py-1">Status</th>
-        </tr>
-      </thead>
-      <tbody id="summaryBody"></tbody>
-    </table>
-  </div>
+<body>
+  <h2>Teacher Dashboard - Attendance Summary</h2>
+  <div id="summary"></div>
 
   <script>
-    // ✅ Your Google Sheet CSV link
-    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
-
-    // Define schedule (08 Sep 2025 to 28 Sep 2025, excluding Sundays)
-    const startDate = new Date("2025-09-08");
-    const endDate = new Date("2025-09-28");
-    const today = new Date();
-
-    function calculateTotalClasses() {
-      let count = 0;
-      for (let d = new Date(startDate); d <= endDate && d <= today; d.setDate(d.getDate() + 1)) {
-        if (d.getDay() !== 0) count++; // Exclude Sundays
-      }
-      return count;
-    }
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
 
     async function loadSummary() {
-      try {
-        const res = await fetch(csvUrl);
-        const text = await res.text();
-        const rows = text.trim().split("\n").map(r => r.split(","));
+      const response = await fetch(sheetUrl);
+      const data = await response.text();
+      const rows = data.split("\n").map(r => r.split(","));
+      const headers = rows[0].map(h => h.trim());
 
-        const headers = rows[0];
-        const timestampIndex = headers.indexOf("Timestamp");
-        const rollIndex = headers.indexOf("Roll number");
-        const idIndex = headers.indexOf("ID number");
+      const tsIndex = headers.indexOf("Timestamp");
+      const idIndex = headers.indexOf("ID number");
 
-        if (timestampIndex === -1 || rollIndex === -1 || idIndex === -1) {
-          alert("CSV format error: Expected 'Timestamp', 'Roll number', 'ID number' columns.");
-          return;
-        }
-
-        const data = {};
-        const totalClasses = calculateTotalClasses();
-
-        rows.slice(1).forEach(row => {
-          const id = row[idIndex].trim().toUpperCase();
-          const roll = row[rollIndex].trim();
-          if (!id) return;
-
-          if (!data[id]) {
-            data[id] = { roll, presents: 0 };
-          }
-          data[id].presents++;
-        });
-
-        const tbody = document.getElementById("summaryBody");
-        tbody.innerHTML = "";
-
-        Object.entries(data).forEach(([id, info]) => {
-          const percent = totalClasses > 0 ? ((info.presents / totalClasses) * 100).toFixed(2) : 0;
-          const statusColor = percent < 75 ? "text-red-600 font-bold" : "text-green-600 font-bold";
-          const tr = document.createElement("tr");
-
-          tr.innerHTML = `
-            <td class="border border-gray-300 px-2 py-1">${id}</td>
-            <td class="border border-gray-300 px-2 py-1">${info.roll}</td>
-            <td class="border border-gray-300 px-2 py-1">${totalClasses}</td>
-            <td class="border border-gray-300 px-2 py-1">${info.presents}</td>
-            <td class="border border-gray-300 px-2 py-1">${percent}%</td>
-            <td class="border border-gray-300 px-2 py-1 ${statusColor}">${percent < 75 ? "❌ Low" : "✅ Good"}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-      } catch (err) {
-        console.error("Error loading data:", err);
-        alert("Failed to load data. Check your CSV link.");
+      if (tsIndex === -1 || idIndex === -1) {
+        alert("CSV format error: Expected 'Timestamp' and 'ID number' columns");
+        return;
       }
+
+      const startDate = new Date("2025-09-08");
+      const endDate = new Date("2025-09-28");
+
+      let totalDays = 0;
+      let allDates = [];
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        if (d.getDay() !== 0) {
+          totalDays++;
+          allDates.push(new Date(d).toISOString().split("T")[0]);
+        }
+      }
+
+      let attendance = {};
+      rows.slice(1).forEach(r => {
+        let id = r[idIndex]?.trim();
+        let date = new Date(r[tsIndex]).toISOString().split("T")[0];
+        if (id && allDates.includes(date)) {
+          if (!attendance[id]) attendance[id] = new Set();
+          attendance[id].add(date);
+        }
+      });
+
+      let tableRows = Object.keys(attendance).map(id => {
+        let present = attendance[id].size;
+        let percent = ((present / totalDays) * 100).toFixed(2);
+        let rowClass = percent < 75 ? "low" : "";
+        return `<tr class="${rowClass}"><td>${id}</td><td>${present}</td><td>${totalDays - present}</td><td>${percent}%</td></tr>`;
+      }).join("");
+
+      document.getElementById("summary").innerHTML = `
+        <table>
+          <tr><th>ID Number</th><th>Present</th><th>Absent</th><th>Percentage</th></tr>
+          ${tableRows}
+        </table>
+      `;
     }
 
     loadSummary();
   </script>
-
 </body>
 </html>
