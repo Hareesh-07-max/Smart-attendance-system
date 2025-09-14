@@ -23,8 +23,7 @@
   </div>
 
   <script>
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
-
+    const sheetUrl = "attendance.csv"; // Local CSV in repo
     const startDate = new Date("2025-09-08");
     const endDate = new Date("2025-09-28");
 
@@ -34,9 +33,7 @@
       let cutoff = today < end ? today : end;
 
       for (let d = new Date(start); d <= cutoff; d.setDate(d.getDate() + 1)) {
-        if (d.getDay() !== 0) { // exclude Sundays
-          dates.push(d.toISOString().split("T")[0]); // yyyy-mm-dd
-        }
+        if (d.getDay() !== 0) dates.push(d.toISOString().split("T")[0]);
       }
       return dates;
     }
@@ -53,7 +50,6 @@
       const dateIndex = headers.indexOf("Timestamp");
       const idIndex = headers.indexOf("ID number");
 
-      // store attendance as "ID|date" for exact matching
       let studentDates = new Set();
 
       rows.slice(1).forEach(row => {
@@ -108,4 +104,4 @@
     }
   </script>
 </body>
-  </html>
+</html>
