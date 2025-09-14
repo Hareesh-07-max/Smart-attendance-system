@@ -18,12 +18,12 @@
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Search</button>
     </div>
 
-    <!-- Results will display here -->
+    <!-- Results -->
     <div id="result"></div>
   </div>
 
   <script>
-    const sheetUrl = "attendance.csv"; // Local CSV in repo
+    const sheetUrl = "attendance.csv"; // Local CSV in same folder
     const startDate = new Date("2025-09-08");
     const endDate = new Date("2025-09-28");
 
@@ -42,65 +42,71 @@
       const studentIdInput = document.getElementById("studentId").value.trim();
       if (!studentIdInput) return alert("Enter a valid ID number!");
 
-      const res = await fetch(sheetUrl);
-      const data = await res.text();
+      try {
+        const res = await fetch(sheetUrl);
+        if (!res.ok) throw new Error("Could not load CSV. Check the file path.");
+        const data = await res.text();
 
-      const rows = data.split(/\r?\n/).map(r => r.split(","));
-      const headers = rows[0].map(h => h.replace(/"/g,'').trim());
-      const dateIndex = headers.indexOf("Timestamp");
-      const idIndex = headers.indexOf("ID number");
+        const rows = data.split(/\r?\n/).map(r => r.split(","));
+        const headers = rows[0].map(h => h.replace(/"/g,'').trim());
+        const dateIndex = headers.indexOf("Timestamp");
+        const idIndex = headers.indexOf("ID number");
 
-      let studentDates = new Set();
+        let studentDates = new Set();
 
-      rows.slice(1).forEach(row => {
-        if (!row || row.length <= Math.max(dateIndex, idIndex)) return;
-        let id = row[idIndex]?.replace(/"/g,'').trim();
-        let csvDate = row[dateIndex]?.replace(/"/g,'').trim();
+        rows.slice(1).forEach(row => {
+          if (!row || row.length <= Math.max(dateIndex, idIndex)) return;
+          let id = row[idIndex]?.replace(/"/g,'').trim();
+          let csvDate = row[dateIndex]?.replace(/"/g,'').trim();
 
-        if (id && csvDate) {
-          const parts = csvDate.split("/");
-          if (parts.length === 3) {
-            const formattedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`.trim();
-            studentDates.add(`${id}|${formattedDate}`);
+          if (id && csvDate) {
+            const parts = csvDate.split("/");
+            if (parts.length === 3) {
+              const formattedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+              studentDates.add(`${id}|${formattedDate}`);
+            }
           }
-        }
-      });
+        });
 
-      const classDates = generateClassDates(startDate, endDate);
-      let presentDays = 0;
-      const todayStr = new Date().toISOString().split("T")[0];
+        const classDates = generateClassDates(startDate, endDate);
+        let presentDays = 0;
+        const todayStr = new Date().toISOString().split("T")[0];
 
-      let table = `
-        <p class="mb-2 font-semibold">Attendance for <span class="text-blue-600">${studentIdInput}</span></p>
-        <table class="w-full border border-gray-300 text-sm">
-          <tr class="bg-gray-200">
-            <th class="border px-2 py-1">Date</th>
-            <th class="border px-2 py-1">Status</th>
-          </tr>
-      `;
-
-      classDates.forEach(date => {
-        const status = studentDates.has(`${studentIdInput}|${date}`) ? "Present" : "Absent";
-        if (status === "Present") presentDays++;
-        const rowClass = date === todayStr ? "bg-yellow-100" : "";
-        table += `
-          <tr class="${rowClass}">
-            <td class="border px-2 py-1">${date}</td>
-            <td class="border px-2 py-1 ${status === "Present" ? "text-green-600 font-bold" : "text-red-600 font-bold"}">${status}</td>
-          </tr>
+        let table = `
+          <p class="mb-2 font-semibold">Attendance for <span class="text-blue-600">${studentIdInput}</span></p>
+          <table class="w-full border border-gray-300 text-sm">
+            <tr class="bg-gray-200">
+              <th class="border px-2 py-1">Date</th>
+              <th class="border px-2 py-1">Status</th>
+            </tr>
         `;
-      });
 
-      const totalDays = classDates.length;
-      const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(2) : 0;
-      const percentColor = percentage < 75 ? "text-red-600" : "text-green-600";
+        classDates.forEach(date => {
+          const status = studentDates.has(`${studentIdInput}|${date}`) ? "Present" : "Absent";
+          if (status === "Present") presentDays++;
+          const rowClass = date === todayStr ? "bg-yellow-100" : "";
+          table += `
+            <tr class="${rowClass}">
+              <td class="border px-2 py-1">${date}</td>
+              <td class="border px-2 py-1 ${status === "Present" ? "text-green-600 font-bold" : "text-red-600 font-bold"}">${status}</td>
+            </tr>
+          `;
+        });
 
-      table += `</table>
-        <p class="mt-3 font-bold">Total Classes (till today): ${totalDays}, Present: ${presentDays}, Absent: ${totalDays - presentDays}</p>
-        <p class="font-bold ${percentColor}">Attendance Percentage: ${percentage}%</p>
-      `;
+        const totalDays = classDates.length;
+        const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(2) : 0;
+        const percentColor = percentage < 75 ? "text-red-600" : "text-green-600";
 
-      document.getElementById("result").innerHTML = table;
+        table += `</table>
+          <p class="mt-3 font-bold">Total Classes (till today): ${totalDays}, Present: ${presentDays}, Absent: ${totalDays - presentDays}</p>
+          <p class="font-bold ${percentColor}">Attendance Percentage: ${percentage}%</p>
+        `;
+
+        document.getElementById("result").innerHTML = table;
+
+      } catch (err) {
+        alert("Error loading CSV: " + err.message);
+      }
     }
   </script>
 </body>
