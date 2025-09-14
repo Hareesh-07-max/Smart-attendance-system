@@ -17,25 +17,13 @@
   <h2>Teacher Dashboard - Attendance Summary</h2>
   <div id="summary">Loading attendance...</div>
 
+  <!-- Tabletop.js for Google Sheets -->
+  <script src="https://cdn.jsdelivr.net/npm/tabletop@1.6.0/tabletop.min.js"></script>
   <script>
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
+    const publicSpreadsheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pubhtml";
 
-    async function loadSummary() {
+    function loadSummary(data) {
       try {
-        const response = await fetch(sheetUrl);
-        const data = await response.text();
-        const rows = data.split("\n").map(r => r.split(","));
-        const headers = rows[0].map(h => h.trim());
-
-        const tsIndex = headers.indexOf("Timestamp");
-        const idIndex = headers.indexOf("ID number");
-
-        if (tsIndex === -1 || idIndex === -1) {
-          document.getElementById("summary").innerHTML =
-            "<p style='color:red;'>CSV format error: Expected 'Timestamp' and 'ID number' columns</p>";
-          return;
-        }
-
         const startDate = new Date("2025-09-08");
         const endDate = new Date("2025-09-28");
 
@@ -49,9 +37,9 @@
         }
 
         let attendance = {};
-        rows.slice(1).forEach(r => {
-          let id = r[idIndex]?.trim();
-          let date = new Date(r[tsIndex]).toISOString().split("T")[0];
+        data.forEach(r => {
+          let id = r["ID number"]?.trim();
+          let date = new Date(r["Timestamp"]).toISOString().split("T")[0];
           if (id && allDates.includes(date)) {
             if (!attendance[id]) attendance[id] = new Set();
             attendance[id].add(date);
@@ -78,11 +66,20 @@
         `;
       } catch (err) {
         document.getElementById("summary").innerHTML =
-          "<p style='color:red;'>Error loading data. Please check sheet link.</p>";
+          "<p style='color:red;'>Error processing attendance data.</p>";
+        console.error(err);
       }
     }
 
-    loadSummary();
+    function init() {
+      Tabletop.init({
+        key: publicSpreadsheetUrl,
+        simpleSheet: true,
+        callback: loadSummary
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>
