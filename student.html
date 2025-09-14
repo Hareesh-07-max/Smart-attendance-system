@@ -4,111 +4,91 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Attendance Portal</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+    h2 { text-align: center; }
+    .container { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #007BFF; color: white; }
+    .present { background: #c8e6c9; }
+    .absent { background: #ffcdd2; }
+    .low { color: red; font-weight: bold; }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-6">
-  <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl">
-    <h1 class="text-2xl font-bold mb-4 text-center">🎓 Student Attendance Portal</h1>
-
-    <!-- Search box -->
-    <div class="flex space-x-2 mb-6 justify-center">
-      <input id="studentId" type="text" placeholder="Enter your ID Number"
-             class="px-4 py-2 border rounded-lg w-64">
-      <button onclick="fetchAttendance()"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Search</button>
-    </div>
-
-    <!-- Results -->
+<body>
+  <div class="container">
+    <h2>Student Attendance Portal</h2>
+    <label for="studentId">Enter Student ID:</label>
+    <input type="text" id="studentId" placeholder="e.g. R230557">
+    <button onclick="loadAttendance()">Search</button>
     <div id="result"></div>
   </div>
 
   <script>
-    const sheetUrl = "attendance.csv"; // CSV in repo root
-    const startDate = new Date("2025-09-08");
-    const endDate = new Date("2025-09-28");
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
 
-    function generateClassDates(start, end) {
-      let dates = [];
-      let today = new Date();
-      let cutoff = today < end ? today : end;
-
-      for (let d = new Date(start); d <= cutoff; d.setDate(d.getDate() + 1)) {
-        if (d.getDay() !== 0) dates.push(d.toISOString().split("T")[0]);
+    async function loadAttendance() {
+      const studentId = document.getElementById("studentId").value.trim();
+      if (!studentId) {
+        alert("Please enter a Student ID");
+        return;
       }
-      return dates;
-    }
 
-    async function fetchAttendance() {
-      const studentIdInput = document.getElementById("studentId").value.trim();
-      if (!studentIdInput) return alert("Enter a valid ID number!");
+      const response = await fetch(sheetUrl);
+      const data = await response.text();
 
-      try {
-        const res = await fetch(sheetUrl);
-        if (!res.ok) throw new Error("Could not load CSV. Check file path.");
-        const data = await res.text();
+      const rows = data.split("\n").map(r => r.split(","));
+      const headers = rows[0].map(h => h.trim());
+      
+      const tsIndex = headers.indexOf("Timestamp");
+      const idIndex = headers.indexOf("ID number");
 
-        const rows = data.split(/\r?\n/).map(r => r.split(","));
-        const headers = rows[0].map(h => h.replace(/"/g,'').trim());
-        const dateIndex = headers.indexOf("Timestamp");
-        const idIndex = headers.indexOf("ID number");
-
-        let studentDates = new Set();
-
-        rows.slice(1).forEach(row => {
-          if (!row || row.length <= Math.max(dateIndex, idIndex)) return;
-          let id = row[idIndex]?.replace(/"/g,'').trim();
-          let csvTimestamp = row[dateIndex]?.replace(/"/g,'').trim();
-
-          if (id && csvTimestamp) {
-            // Extract only date, ignore time
-            let dateOnly = csvTimestamp.split(" ")[0]; // "08/09/2025 06:30:00" → "08/09/2025"
-            const parts = dateOnly.split("/");
-            if (parts.length === 3) {
-              const formattedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-              studentDates.add(`${id}|${formattedDate}`);
-            }
-          }
-        });
-
-        const classDates = generateClassDates(startDate, endDate);
-        let presentDays = 0;
-        const todayStr = new Date().toISOString().split("T")[0];
-
-        let table = `
-          <p class="mb-2 font-semibold">Attendance for <span class="text-blue-600">${studentIdInput}</span></p>
-          <table class="w-full border border-gray-300 text-sm">
-            <tr class="bg-gray-200">
-              <th class="border px-2 py-1">Date</th>
-              <th class="border px-2 py-1">Status</th>
-            </tr>
-        `;
-
-        classDates.forEach(date => {
-          const status = studentDates.has(`${studentIdInput}|${date}`) ? "Present" : "Absent";
-          if (status === "Present") presentDays++;
-          const rowClass = date === todayStr ? "bg-yellow-100" : "";
-          table += `
-            <tr class="${rowClass}">
-              <td class="border px-2 py-1">${date}</td>
-              <td class="border px-2 py-1 ${status === "Present" ? "text-green-600 font-bold" : "text-red-600 font-bold"}">${status}</td>
-            </tr>
-          `;
-        });
-
-        const totalDays = classDates.length;
-        const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(2) : 0;
-        const percentColor = percentage < 75 ? "text-red-600" : "text-green-600";
-
-        table += `</table>
-          <p class="mt-3 font-bold">Total Classes (till today): ${totalDays}, Present: ${presentDays}, Absent: ${totalDays - presentDays}</p>
-          <p class="font-bold ${percentColor}">Attendance Percentage: ${percentage}%</p>
-        `;
-
-        document.getElementById("result").innerHTML = table;
-
-      } catch (err) {
-        alert("Error loading CSV: " + err.message);
+      if (tsIndex === -1 || idIndex === -1) {
+        alert("CSV format error: Expected 'Timestamp' and 'ID number' columns");
+        return;
       }
+
+      const startDate = new Date("2025-09-08");
+      const endDate = new Date("2025-09-28");
+
+      // All valid dates excluding Sundays
+      let totalDays = 0;
+      let allDates = [];
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        if (d.getDay() !== 0) { // exclude Sunday
+          totalDays++;
+          allDates.push(new Date(d).toISOString().split("T")[0]);
+        }
+      }
+
+      const studentDates = rows
+        .slice(1)
+        .filter(r => r[idIndex] && r[idIndex].trim() === studentId)
+        .map(r => new Date(r[tsIndex]).toISOString().split("T")[0]);
+
+      let present = 0;
+      let tableRows = allDates.map(date => {
+        if (studentDates.includes(date)) {
+          present++;
+          return `<tr><td>${date}</td><td class="present">Present</td></tr>`;
+        } else {
+          return `<tr><td>${date}</td><td class="absent">Absent</td></tr>`;
+        }
+      }).join("");
+
+      let percentage = ((present / totalDays) * 100).toFixed(2);
+      let percentageClass = percentage < 75 ? "low" : "";
+
+      document.getElementById("result").innerHTML = `
+        <h3>Attendance for ${studentId}</h3>
+        <p>Total Days: ${totalDays}, Present: ${present}, Absent: ${totalDays - present}</p>
+        <p>Attendance Percentage: <span class="${percentageClass}">${percentage}%</span></p>
+        <table>
+          <tr><th>Date</th><th>Status</th></tr>
+          ${tableRows}
+        </table>
+      `;
     }
   </script>
 </body>
