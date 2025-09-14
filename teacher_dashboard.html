@@ -11,43 +11,56 @@
     th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     th { background: #007BFF; color: white; }
     .low { background: #ffcdd2; font-weight: bold; }
+    #searchContainer { margin-top: 20px; text-align: center; }
+    #searchContainer input { padding: 5px; width: 200px; }
+    #searchContainer button { padding: 5px 10px; }
   </style>
 </head>
 <body>
   <h2>Teacher Dashboard - Attendance Summary</h2>
+
+  <div id="searchContainer">
+    <input type="text" id="studentId" placeholder="Enter Student ID">
+    <button onclick="searchStudent()">Search</button>
+  </div>
+
   <div id="summary">Loading attendance...</div>
 
-  <!-- Tabletop.js for Google Sheets -->
   <script src="https://cdn.jsdelivr.net/npm/tabletop@1.6.0/tabletop.min.js"></script>
   <script>
-    const publicSpreadsheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pubhtml";
+    const publicSpreadsheetUrl = "https://docs.google.com/spreadsheets/d/1HA2iN2wmwGbCroDJkL7PQcJFCZ-tEbq6nZ_swO3C-0E/pubhtml";
+    let attendanceData = {}; // Will store processed attendance
+    let totalDays = 0;
 
-    function loadSummary(data) {
-      try {
-        const startDate = new Date("2025-09-08");
-        const endDate = new Date("2025-09-28");
+    function processAttendance(data) {
+      const startDate = new Date("2025-09-08");
+      const endDate = new Date("2025-09-28");
 
-        let totalDays = 0;
-        let allDates = [];
-        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-          if (d.getDay() !== 0) { // exclude Sundays
-            totalDays++;
-            allDates.push(new Date(d).toISOString().split("T")[0]);
-          }
+      totalDays = 0;
+      let allDates = [];
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        if (d.getDay() !== 0) { // exclude Sundays
+          totalDays++;
+          allDates.push(new Date(d).toISOString().split("T")[0]);
         }
+      }
 
-        let attendance = {};
-        data.forEach(r => {
-          let id = r["ID number"]?.trim();
-          let date = new Date(r["Timestamp"]).toISOString().split("T")[0];
-          if (id && allDates.includes(date)) {
-            if (!attendance[id]) attendance[id] = new Set();
-            attendance[id].add(date);
-          }
-        });
+      attendanceData = {};
+      data.forEach(r => {
+        let id = r["ID number"]?.trim();
+        let date = new Date(r["Timestamp"]).toISOString().split("T")[0];
+        if (id && allDates.includes(date)) {
+          if (!attendanceData[id]) attendanceData[id] = new Set();
+          attendanceData[id].add(date);
+        }
+      });
+    }
 
-        let tableRows = Object.keys(attendance).map(id => {
-          let present = attendance[id].size;
+    function displayAll() {
+      let tableRows = Object.keys(attendanceData)
+        .sort((a, b) => a.localeCompare(b))
+        .map(id => {
+          let present = attendanceData[id].size;
           let percent = ((present / totalDays) * 100).toFixed(2);
           let rowClass = percent < 75 ? "low" : "";
           return `<tr class="${rowClass}">
@@ -58,24 +71,48 @@
                   </tr>`;
         }).join("");
 
-        document.getElementById("summary").innerHTML = `
-          <table>
-            <tr><th>ID Number</th><th>Present</th><th>Absent</th><th>Percentage</th></tr>
-            ${tableRows}
-          </table>
-        `;
-      } catch (err) {
-        document.getElementById("summary").innerHTML =
-          "<p style='color:red;'>Error processing attendance data.</p>";
-        console.error(err);
+      document.getElementById("summary").innerHTML = `
+        <table>
+          <tr><th>ID Number</th><th>Present</th><th>Absent</th><th>Percentage</th></tr>
+          ${tableRows}
+        </table>
+      `;
+    }
+
+    function searchStudent() {
+      const id = document.getElementById("studentId").value.trim();
+      if (!id) return displayAll();
+
+      if (!attendanceData[id]) {
+        document.getElementById("summary").innerHTML = `<p style="color:red;text-align:center;">Student ID "${id}" not found.</p>`;
+        return;
       }
+
+      let present = attendanceData[id].size;
+      let percent = ((present / totalDays) * 100).toFixed(2);
+      let rowClass = percent < 75 ? "low" : "";
+
+      document.getElementById("summary").innerHTML = `
+        <table>
+          <tr><th>ID Number</th><th>Present</th><th>Absent</th><th>Percentage</th></tr>
+          <tr class="${rowClass}">
+            <td>${id}</td>
+            <td>${present}</td>
+            <td>${totalDays - present}</td>
+            <td>${percent}%</td>
+          </tr>
+        </table>
+      `;
     }
 
     function init() {
       Tabletop.init({
         key: publicSpreadsheetUrl,
         simpleSheet: true,
-        callback: loadSummary
+        callback: function(data) {
+          processAttendance(data);
+          displayAll();
+        }
       });
     }
 
