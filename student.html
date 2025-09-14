@@ -28,14 +28,13 @@
     const startDate = new Date("2025-09-08");
     const endDate = new Date("2025-09-28");
 
-    // Generate schedule dates excluding Sundays
     function generateClassDates(start, end) {
       let dates = [];
       let today = new Date();
-      let cutoff = today < end ? today : end; 
+      let cutoff = today < end ? today : end;
 
       for (let d = new Date(start); d <= cutoff; d.setDate(d.getDate() + 1)) {
-        if (d.getDay() !== 0) { 
+        if (d.getDay() !== 0) { // exclude Sundays
           dates.push(d.toISOString().split("T")[0]); // yyyy-mm-dd
         }
       }
@@ -72,7 +71,7 @@
       const classDates = generateClassDates(startDate, endDate);
 
       let presentDays = 0;
-      let todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = new Date().toISOString().split("T")[0];
       let table = `
         <p class="mb-2 font-semibold">Attendance for <span class="text-blue-600">${studentIdInput}</span></p>
         <table class="w-full border border-gray-300 text-sm">
@@ -83,9 +82,9 @@
       `;
 
       classDates.forEach(date => {
-        let status = studentDates.has(date) ? "Present" : "Absent";
+        const status = studentDates.has(date) ? "Present" : "Absent";
         if (status === "Present") presentDays++;
-        let rowClass = date === todayStr ? "bg-yellow-100" : "";
+        const rowClass = date === todayStr ? "bg-yellow-100" : "";
         table += `
           <tr class="${rowClass}">
             <td class="border px-2 py-1">${date}</td>
