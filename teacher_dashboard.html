@@ -3,72 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Dashboard</title>
+  <title>Teacher Dashboard - Attendance Summary</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; background: #eef; }
     h2 { text-align: center; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     th { background: #007BFF; color: white; }
-    .low { background: #ffcdd2; }
+    .low { background: #ffcdd2; font-weight: bold; }
   </style>
 </head>
 <body>
   <h2>Teacher Dashboard - Attendance Summary</h2>
-  <div id="summary"></div>
+  <div id="summary">Loading attendance...</div>
 
   <script>
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
 
     async function loadSummary() {
-      const response = await fetch(sheetUrl);
-      const data = await response.text();
-      const rows = data.split("\n").map(r => r.split(","));
-      const headers = rows[0].map(h => h.trim());
+      try {
+        const response = await fetch(sheetUrl);
+        const data = await response.text();
+        const rows = data.split("\n").map(r => r.split(","));
+        const headers = rows[0].map(h => h.trim());
 
-      const tsIndex = headers.indexOf("Timestamp");
-      const idIndex = headers.indexOf("ID number");
+        const tsIndex = headers.indexOf("Timestamp");
+        const idIndex = headers.indexOf("ID number");
 
-      if (tsIndex === -1 || idIndex === -1) {
-        alert("CSV format error: Expected 'Timestamp' and 'ID number' columns");
-        return;
-      }
-
-      const startDate = new Date("2025-09-08");
-      const endDate = new Date("2025-09-28");
-
-      let totalDays = 0;
-      let allDates = [];
-      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        if (d.getDay() !== 0) {
-          totalDays++;
-          allDates.push(new Date(d).toISOString().split("T")[0]);
+        if (tsIndex === -1 || idIndex === -1) {
+          document.getElementById("summary").innerHTML =
+            "<p style='color:red;'>CSV format error: Expected 'Timestamp' and 'ID number' columns</p>";
+          return;
         }
-      }
 
-      let attendance = {};
-      rows.slice(1).forEach(r => {
-        let id = r[idIndex]?.trim();
-        let date = new Date(r[tsIndex]).toISOString().split("T")[0];
-        if (id && allDates.includes(date)) {
-          if (!attendance[id]) attendance[id] = new Set();
-          attendance[id].add(date);
+        const startDate = new Date("2025-09-08");
+        const endDate = new Date("2025-09-28");
+
+        let totalDays = 0;
+        let allDates = [];
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          if (d.getDay() !== 0) { // exclude Sundays
+            totalDays++;
+            allDates.push(new Date(d).toISOString().split("T")[0]);
+          }
         }
-      });
 
-      let tableRows = Object.keys(attendance).map(id => {
-        let present = attendance[id].size;
-        let percent = ((present / totalDays) * 100).toFixed(2);
-        let rowClass = percent < 75 ? "low" : "";
-        return `<tr class="${rowClass}"><td>${id}</td><td>${present}</td><td>${totalDays - present}</td><td>${percent}%</td></tr>`;
-      }).join("");
+        let attendance = {};
+        rows.slice(1).forEach(r => {
+          let id = r[idIndex]?.trim();
+          let date = new Date(r[tsIndex]).toISOString().split("T")[0];
+          if (id && allDates.includes(date)) {
+            if (!attendance[id]) attendance[id] = new Set();
+            attendance[id].add(date);
+          }
+        });
 
-      document.getElementById("summary").innerHTML = `
-        <table>
-          <tr><th>ID Number</th><th>Present</th><th>Absent</th><th>Percentage</th></tr>
-          ${tableRows}
-        </table>
-      `;
+        let tableRows = Object.keys(attendance).map(id => {
+          let present = attendance[id].size;
+          let percent = ((present / totalDays) * 100).toFixed(2);
+          let rowClass = percent < 75 ? "low" : "";
+          return `<tr class="${rowClass}">
+                    <td>${id}</td>
+                    <td>${present}</td>
+                    <td>${totalDays - present}</td>
+                    <td>${percent}%</td>
+                  </tr>`;
+        }).join("");
+
+        document.getElementById("summary").innerHTML = `
+          <table>
+            <tr><th>ID Number</th><th>Present</th><th>Absent</th><th>Percentage</th></tr>
+            ${tableRows}
+          </table>
+        `;
+      } catch (err) {
+        document.getElementById("summary").innerHTML =
+          "<p style='color:red;'>Error loading data. Please check sheet link.</p>";
+      }
     }
 
     loadSummary();
