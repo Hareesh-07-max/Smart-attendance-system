@@ -13,7 +13,12 @@
       👩‍🏫 Welcome, Teacher
     </h1>
 
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">📊 Attendance Summary</h2>
+    <h2 class="text-xl font-semibold text-gray-700 mb-2">📊 Attendance Summary</h2>
+
+    <!-- Total Classes -->
+    <p id="totalClasses" class="font-bold mb-3 text-gray-700"></p>
+
+    <!-- Summary Table -->
     <div id="attendanceSummary" class="overflow-x-auto"></div>
 
     <div class="mt-6 text-center">
@@ -62,6 +67,9 @@
         if (d.getDay() !== 0) classDates.push(d.toISOString().split("T")[0]);
       }
       const totalClasses = classDates.length;
+
+      // Display total classes
+      document.getElementById("totalClasses").textContent = `📅 Total Classes Conducted: ${totalClasses}`;
 
       rows.slice(1).forEach(row => {
         if (!row || row.length <= Math.max(dateIndex,idIndex)) return;
