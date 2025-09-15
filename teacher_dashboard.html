@@ -8,13 +8,15 @@
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-6">
 
-  <div class="bg-white p-6 rounded-2xl shadow-md max-w-5xl mx-auto">
-    <h1 id="welcomeMsg" class="text-2xl font-bold text-gray-800 mb-4">👩‍🏫 Welcome, Teacher</h1>
+  <div class="bg-white p-6 rounded-2xl shadow-md max-w-4xl mx-auto">
+    <h1 id="welcomeMsg" class="text-2xl font-bold text-gray-800 mb-4">
+      👩‍🏫 Welcome, Teacher
+    </h1>
 
-    <h2 class="text-xl font-semibold text-gray-700 mb-2">📊 Attendance Summary</h2>
-    <p id="totalClasses" class="font-bold mb-3 text-gray-700"></p>
-
-    <div id="attendanceSummary" class="overflow-x-auto"></div>
+    <h2 class="text-xl font-semibold text-gray-700 mb-2">📊 Attendance Records</h2>
+    <iframe 
+      src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pubhtml?widget=true&amp;headers=false" 
+      width="100%" height="500px" class="rounded-lg border"></iframe>
 
     <div class="mt-6 text-center">
       <button id="logoutBtn" 
@@ -25,84 +27,22 @@
   </div>
 
   <script>
+    // Get teacher name from localStorage
     const teacher = localStorage.getItem("loggedInTeacher");
     const welcomeMsg = document.getElementById("welcomeMsg");
+
     if (teacher) {
       welcomeMsg.textContent = `👩‍🏫 Welcome, ${teacher}`;
     } else {
+      // If no login, go back to login page
       window.location.href = "teacher_login.html";
     }
 
+    // Logout button
     document.getElementById("logoutBtn").addEventListener("click", () => {
       localStorage.removeItem("loggedInTeacher");
       window.location.href = "teacher_login.html";
     });
-
-    // Google Sheet published CSV URL
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQr71Ncv1XJN8HakY9P7htSYHVBKVrLIZplE03F8KLafa4KqS9EGvu6py3DgU1jtuZzz-b3CXk-XZGy/pub?output=csv";
-
-    async function loadAttendanceSummary() {
-      const res = await fetch(sheetUrl);
-      const data = await res.text();
-
-      const rows = data.split(/\r?\n/).map(r => r.split(","));
-      const headers = rows[0].map(h => h.replace(/"/g,'').trim());
-      const dateIndex = headers.indexOf("Timestamp");
-      const idIndex = headers.indexOf("ID number");
-
-      let studentMap = {};
-      const startDate = new Date("2025-09-08");
-      const endDate = new Date("2025-09-28");
-      let classDates = [];
-      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate()+1)) {
-        if (d.getDay() !== 0) classDates.push(d.toISOString().split("T")[0]);
-      }
-      const totalClasses = classDates.length;
-      document.getElementById("totalClasses").textContent = `📅 Total Classes Conducted: ${totalClasses}`;
-
-      rows.slice(1).forEach(row => {
-        if (!row || row.length <= Math.max(dateIndex,idIndex)) return;
-        let id = row[idIndex]?.replace(/"/g,'').trim();
-        let timestamp = row[dateIndex]?.replace(/"/g,'').trim();
-        if (!id || !timestamp) return;
-
-        // Convert "08/09/2025" to "2025-09-08"
-        let parts = timestamp.split("/");
-        if (parts.length === 3) {
-          const formattedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-          if (!studentMap[id]) studentMap[id] = new Set();
-          studentMap[id].add(formattedDate);
-        }
-      });
-
-      // Build summary table
-      let table = `<table class="w-full border border-gray-300 text-sm">
-        <tr class="bg-gray-200">
-          <th class="border px-2 py-1">Student ID</th>
-          <th class="border px-2 py-1">Present Days</th>
-          <th class="border px-2 py-1">Absent Days</th>
-          <th class="border px-2 py-1">Attendance %</th>
-        </tr>`;
-
-      for (let id in studentMap) {
-        const presentDays = studentMap[id].size;
-        const absentDays = totalClasses - presentDays;
-        const percentage = ((presentDays / totalClasses) * 100).toFixed(2);
-        const percentColor = percentage < 75 ? "text-red-600 font-bold" : "text-green-600 font-bold";
-
-        table += `<tr>
-          <td class="border px-2 py-1">${id}</td>
-          <td class="border px-2 py-1">${presentDays}</td>
-          <td class="border px-2 py-1">${absentDays}</td>
-          <td class="border px-2 py-1 ${percentColor}">${percentage}%</td>
-        </tr>`;
-      }
-
-      table += `</table>`;
-      document.getElementById("attendanceSummary").innerHTML = table;
-    }
-
-    loadAttendanceSummary();
   </script>
 
 </body>
