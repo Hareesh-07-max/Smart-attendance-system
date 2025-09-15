@@ -14,8 +14,8 @@
     <div class="flex space-x-2 mb-6 justify-center">
       <input id="studentId" type="text" placeholder="Enter your ID Number"
              class="px-4 py-2 border rounded-lg w-64">
-      <button onclick="fetchAttendance()"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Search</button>
+      <button onclick="submitAttendance()"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Submit Attendance</button>
     </div>
 
     <!-- Results -->
@@ -23,7 +23,20 @@
   </div>
 
   <script>
-    const sheetUrl = "attendance.csv"; // CSV in repo root
+    // ====== Attendance Submission ======
+    function submitAttendance() {
+      const studentId = document.getElementById("studentId").value.trim();
+      if (!studentId) return alert("Enter your ID number!");
+
+      // Replace FORM_ID and ENTRY_ID with your Google Form details
+      const googleFormURL = `https://docs.google.com/forms/d/e/FORM_ID/viewform?usp=pp_url&entry.ENTRY_ID=${studentId}`;
+
+      // Redirect to Google Form pre-filled (automatic attendance submission)
+      window.location.href = googleFormURL;
+    }
+
+    // ====== Optional: Display Attendance from CSV (read-only) ======
+    const sheetUrl = "attendance.csv"; // Only for display, does not update
     const startDate = new Date("2025-09-08");
     const endDate = new Date("2025-09-28");
 
@@ -31,7 +44,6 @@
       let dates = [];
       let today = new Date();
       let cutoff = today < end ? today : end;
-
       for (let d = new Date(start); d <= cutoff; d.setDate(d.getDate() + 1)) {
         if (d.getDay() !== 0) dates.push(d.toISOString().split("T")[0]);
       }
@@ -57,15 +69,14 @@
         rows.slice(1).forEach(row => {
           if (!row || row.length <= Math.max(dateIndex, idIndex)) return;
           let id = row[idIndex]?.replace(/"/g,'').trim();
-          let csvTimestamp = row[dateIndex]?.replace(/"/g,'').trim();
+          if (id !== studentIdInput) return; // Only this student
 
-          if (id && csvTimestamp) {
-            // Extract only date, ignore time
-            let dateOnly = csvTimestamp.split(" ")[0]; // "08/09/2025 06:30:00" → "08/09/2025"
-            const parts = dateOnly.split("/");
+          let csvTimestamp = row[dateIndex]?.replace(/"/g,'').trim();
+          if (csvTimestamp) {
+            const parts = csvTimestamp.split("/");
             if (parts.length === 3) {
               const formattedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-              studentDates.add(`${id}|${formattedDate}`);
+              studentDates.add(formattedDate);
             }
           }
         });
@@ -84,7 +95,7 @@
         `;
 
         classDates.forEach(date => {
-          const status = studentDates.has(`${studentIdInput}|${date}`) ? "Present" : "Absent";
+          const status = studentDates.has(date) ? "Present" : "Absent";
           if (status === "Present") presentDays++;
           const rowClass = date === todayStr ? "bg-yellow-100" : "";
           table += `
