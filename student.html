@@ -23,72 +23,86 @@
 </div>
 
 <script>
-  const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQr71Ncv1XJN8HakY9P7htSYHVBKVrLIZplE03F8KLafa4KqS9EGvu6py3DgU1jtuZzz-b3CXk-XZGy/pub?output=csv";
-  const startDate = new Date("2025-09-08");
-  const endDate = new Date("2025-09-28");
+const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQr71Ncv1XJN8HakY9P7htSYHVBKVrLIZplE03F8KLafa4KqS9EGvu6py3DgU1jtuZzz-b3CXk-XZGy/pub?output=csv";
+const startDate = new Date("2025-09-08");
+const endDate = new Date("2025-09-28");
 
-  function generateClassDates(start, end) {
-    let dates = [];
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
-      if(d.getDay() !== 0) dates.push(d.toISOString().split("T")[0]);
+// Generate class dates excluding Sundays
+function generateClassDates(start, end) {
+  let dates = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    if(d.getDay() !== 0) { // exclude Sundays
+      dates.push(d.toISOString().split("T")[0]);
     }
-    return dates;
   }
+  return dates;
+}
 
-  function fetchAttendance() {
-    const studentId = document.getElementById("studentId").value.trim();
-    if(!studentId) return alert("Enter a valid ID number!");
+function fetchAttendance() {
+  const studentIdInput = document.getElementById("studentId").value.trim();
+  if(!studentIdInput) return alert("Enter a valid ID number!");
 
-    Papa.parse(sheetUrl, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: function(results) {
-        const data = results.data;
+  Papa.parse(sheetUrl, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      const data = results.data;
 
-        let studentDates = new Set();
-        data.forEach(row => {
-          const id = row["ID number"]?.trim();
-          const timestamp = row["Timestamp"]?.trim();
-          if(id === studentId && timestamp){
-            let [day, month, year] = timestamp.split(" ")[0].split("/");
-            if(day && month && year){
-              const formattedDate = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
-              studentDates.add(formattedDate);
-            }
+      // Normalize column names
+      const normalizedData = data.map(row => {
+        let obj = {};
+        for (let key in row) {
+          obj[key.trim()] = row[key]?.trim();
+        }
+        return obj;
+      });
+
+      let studentDates = new Set();
+
+      normalizedData.forEach(row => {
+        const id = row["ID number"];
+        const timestamp = row["Timestamp"];
+        if(id === studentIdInput && timestamp) {
+          let datePart = timestamp.split(" ")[0].trim();
+          let [day, month, year] = datePart.split("/");
+          if(day && month && year) {
+            const formattedDate = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+            studentDates.add(formattedDate);
           }
-        });
+        }
+      });
 
-        const classDates = generateClassDates(startDate, endDate);
-        let presentDays = 0;
+      const classDates = generateClassDates(startDate, endDate);
+      let presentDays = 0;
 
-        let table = `<table class="w-full border border-gray-300 text-sm">
-          <tr class="bg-gray-200">
-            <th class="border px-2 py-1">Date</th>
-            <th class="border px-2 py-1">Status</th>
-          </tr>`;
+      let table = `<table class="w-full border border-gray-300 text-sm">
+        <tr class="bg-gray-200">
+          <th class="border px-2 py-1">Date</th>
+          <th class="border px-2 py-1">Status</th>
+        </tr>`;
 
-        classDates.forEach(date => {
-          const status = studentDates.has(date) ? "Present" : "Absent";
-          if(status === "Present") presentDays++;
-          table += `<tr>
-            <td class="border px-2 py-1">${date}</td>
-            <td class="border px-2 py-1 ${status==="Present"?"text-green-600 font-bold":"text-red-600 font-bold"}">${status}</td>
-          </tr>`;
-        });
+      classDates.forEach(date => {
+        const status = studentDates.has(date) ? "Present" : "Absent";
+        if(status === "Present") presentDays++;
+        table += `<tr>
+          <td class="border px-2 py-1">${date}</td>
+          <td class="border px-2 py-1 ${status==="Present"?"text-green-600 font-bold":"text-red-600 font-bold"}">${status}</td>
+        </tr>`;
+      });
 
-        const totalDays = classDates.length;
-        const percentage = totalDays > 0 ? ((presentDays/totalDays)*100).toFixed(2) : 0;
-        const percentColor = percentage < 75 ? "text-red-600" : "text-green-600";
+      const totalDays = classDates.length;
+      const percentage = totalDays>0 ? ((presentDays/totalDays)*100).toFixed(2) : 0;
+      const percentColor = percentage < 75 ? "text-red-600" : "text-green-600";
 
-        table += `</table>
-          <p class="mt-3 font-bold">Total Classes: ${totalDays}, Present: ${presentDays}, Absent: ${totalDays - presentDays}</p>
-          <p class="font-bold ${percentColor}">Attendance Percentage: ${percentage}%</p>`;
+      table += `</table>
+        <p class="mt-3 font-bold">Total Classes (excluding Sundays): ${totalDays}, Present: ${presentDays}, Absent: ${totalDays - presentDays}</p>
+        <p class="font-bold ${percentColor}">Attendance Percentage: ${percentage}%</p>`;
 
-        document.getElementById("result").innerHTML = table;
-      }
-    });
-  }
+      document.getElementById("result").innerHTML = table;
+    }
+  });
+}
 </script>
 
 </body>
