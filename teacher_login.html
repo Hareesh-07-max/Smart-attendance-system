@@ -14,27 +14,43 @@
     <form id="loginForm" class="space-y-4">
       <div>
         <label class="block text-gray-700 text-sm font-medium mb-1">Username</label>
-        <input type="text" id="username" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" required>
+        <input type="text" id="username" 
+          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" required>
       </div>
       <div>
         <label class="block text-gray-700 text-sm font-medium mb-1">Password</label>
-        <input type="password" id="password" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" required>
+        <input type="password" id="password" 
+          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" required>
       </div>
-      <button type="submit" class="w-full bg-indigo-500 text-white py-2 rounded-lg font-semibold hover:bg-indigo-600 transition">Login</button>
+      <button type="submit" 
+        class="w-full bg-indigo-500 text-white py-2 rounded-lg font-semibold hover:bg-indigo-600 transition">
+        Login
+      </button>
     </form>
 
-    <p id="errorMsg" class="text-red-500 text-sm mt-4 hidden text-center">❌ Invalid username or password</p>
+    <!-- Error message -->
+    <p id="errorMsg" class="text-red-500 text-sm mt-4 hidden text-center">
+      ❌ Invalid username or password
+    </p>
+
+    <!-- Back to Home -->
+    <div class="mt-6 text-center">
+      <a href="index.html" 
+         class="inline-block bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+        ⬅️ Back to Home
+      </a>
+    </div>
   </div>
 
   <script>
     const form = document.getElementById("loginForm");
     const errorMsg = document.getElementById("errorMsg");
 
-    // Multiple teacher accounts (frontend-only demo)
-    const teachers = {
-      "teacher1": "12345",
-      "teacher2": "abcd",
-      "teacher3": "pass123"
+    // Teacher accounts
+    const accounts = {
+      "teacher": ["12345", "teach@123"],
+      "teacher1": ["pass1"],
+      "teacher2": ["pass2"]
     };
 
     form.addEventListener("submit", function(e) {
@@ -43,9 +59,11 @@
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value.trim();
 
-      if (teachers[username] && teachers[username] === password) {
-        // Redirect to dashboard with teacher name
+      if (accounts[username] && accounts[username].includes(password)) {
+        // Save username in localStorage
         localStorage.setItem("loggedInTeacher", username);
+
+        // Redirect to dashboard
         window.location.href = "teacher_dashboard.html";
       } else {
         errorMsg.classList.remove("hidden");
