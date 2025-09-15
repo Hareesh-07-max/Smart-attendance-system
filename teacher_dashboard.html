@@ -38,7 +38,7 @@
       window.location.href = "teacher_login.html";
     });
 
-    // ==== Fetch Attendance from Published Google Sheet ====
+    // Google Sheet published CSV URL
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQr71Ncv1XJN8HakY9P7htSYHVBKVrLIZplE03F8KLafa4KqS9EGvu6py3DgU1jtuZzz-b3CXk-XZGy/pub?output=csv";
 
     async function loadAttendanceSummary() {
@@ -66,6 +66,7 @@
         let timestamp = row[dateIndex]?.replace(/"/g,'').trim();
         if (!id || !timestamp) return;
 
+        // Convert "08/09/2025" to "2025-09-08"
         let parts = timestamp.split("/");
         if (parts.length === 3) {
           const formattedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
@@ -74,6 +75,7 @@
         }
       });
 
+      // Build summary table
       let table = `<table class="w-full border border-gray-300 text-sm">
         <tr class="bg-gray-200">
           <th class="border px-2 py-1">Student ID</th>
