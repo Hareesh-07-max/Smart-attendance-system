@@ -39,7 +39,7 @@
     });
 
     // ==== Fetch Attendance from Published Google Sheet ====
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQr71Ncv1XJN8HakY9P7htSYHVBKVrLIZplE03F8KLafa4KqS9EGvu6py3DgU1jtuZzz-b3CXk-XZGy/pub?output=csv";
 
     async function loadAttendanceSummary() {
       const res = await fetch(sheetUrl);
@@ -50,7 +50,6 @@
       const dateIndex = headers.indexOf("Timestamp");
       const idIndex = headers.indexOf("ID number");
 
-      // Map studentID → Set of attended dates
       let studentMap = {};
       const startDate = new Date("2025-09-08");
       const endDate = new Date("2025-09-28");
@@ -75,7 +74,6 @@
         }
       });
 
-      // Build table
       let table = `<table class="w-full border border-gray-300 text-sm">
         <tr class="bg-gray-200">
           <th class="border px-2 py-1">Student ID</th>
