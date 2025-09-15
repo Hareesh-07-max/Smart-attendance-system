@@ -27,15 +27,15 @@ const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60r
 const startDate = new Date("2025-09-15");
 const endDate = new Date("2025-09-28");
 
-// Generate class dates excluding Sundays, up to today
+// Generate class dates excluding Sundays and only up to today
 function generateClassDates(start, end) {
   let dates = [];
-  const today = new Date();
-  const cutoff = today < end ? today : end; // only count classes till today
+  const todayStr = new Date().toISOString().split("T")[0]; // only date part
 
-  for (let d = new Date(start); d <= cutoff; d.setDate(d.getDate() + 1)) {
-    if(d.getDay() !== 0) { // exclude Sundays
-      dates.push(d.toISOString().split("T")[0]);
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dStr = d.toISOString().split("T")[0];
+    if (d.getDay() !== 0 && dStr <= todayStr) { // exclude Sundays & future dates
+      dates.push(dStr);
     }
   }
   return dates;
@@ -76,7 +76,7 @@ function fetchAttendance() {
         }
       });
 
-      const classDates = generateClassDates(startDate, endDate); // up to today
+      const classDates = generateClassDates(startDate, endDate);
       let presentDays = 0;
 
       let table = `<table class="w-full border border-gray-300 text-sm">
