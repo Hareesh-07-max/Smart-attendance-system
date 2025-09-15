@@ -3,138 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Dashboard - Smart Attendance System</title>
+  <title>Teacher Login - Smart Attendance System</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-6">
+<body class="bg-gradient-to-br from-green-50 to-emerald-100 min-h-screen flex items-center justify-center p-6">
 
-<div class="bg-white p-6 rounded-2xl shadow-md max-w-5xl mx-auto">
-  <!-- Header Section -->
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-800">📊 Teacher Dashboard</h1>
-    <a href="./index.html" 
-       class="px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition">
-       🚪 Logout
-    </a>
-  </div>
+  <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-sm">
+    <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">👩‍🏫 Teacher Login</h1>
 
-  <!-- Search Bar -->
-  <div class="flex items-center space-x-2 mb-4">
-    <input id="searchInput" 
-           type="text" 
-           placeholder="🔍 Search by Student ID..." 
-           class="px-4 py-2 border rounded-lg w-full">
-    <button onclick="applySearch()" 
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-      Search
+    <input id="username" type="text" placeholder="Username"
+      class="w-full mb-4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+
+    <input id="password" type="password" placeholder="Password"
+      class="w-full mb-6 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+
+    <button onclick="login()" 
+      class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
+      🔑 Login
     </button>
+
+    <p id="error" class="text-red-600 text-center mt-4 hidden">Invalid username or password</p>
   </div>
 
-  <!-- Table Container -->
-  <div id="result" class="mt-4 overflow-x-auto"></div>
-</div>
+  <script>
+    function login() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
 
-<script>
-const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
-
-const startDate = new Date("2025-09-15");
-const today = new Date();
-
-// Generate class dates excluding Sundays
-function generateClassDates(start, end) {
-  let dates = [];
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    if (d.getDay() !== 0) {
-      dates.push(d.toISOString().split("T")[0]);
+      // Example login (you can change credentials)
+      if(username === "teacher" && password === "teach@123") {
+        window.location.href = "teacher_dashboard.html"; // Redirect to dashboard
+      } else {
+        document.getElementById("error").classList.remove("hidden");
+      }
     }
-  }
-  return dates;
-}
-
-let studentMap = {};
-let classDates = [];
-
-function fetchAttendance() {
-  Papa.parse(sheetUrl, {
-    download: true,
-    header: true,
-    skipEmptyLines: true,
-    complete: function(results) {
-      const data = results.data;
-
-      // Normalize
-      const normalizedData = data.map(row => {
-        let obj = {};
-        for (let key in row) {
-          obj[key.trim()] = row[key]?.trim();
-        }
-        return obj;
-      });
-
-      // Map student IDs to their present dates
-      studentMap = {};
-      normalizedData.forEach(row => {
-        const id = row["ID number"];
-        const timestamp = row["Timestamp"];
-        if (id && timestamp) {
-          let datePart = timestamp.split(" ")[0].trim();
-          let [day, month, year] = datePart.split("/");
-          if (day && month && year) {
-            const formattedDate = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
-            if (!studentMap[id]) studentMap[id] = new Set();
-            studentMap[id].add(formattedDate);
-          }
-        }
-      });
-
-      classDates = generateClassDates(startDate, today);
-      renderTable();
-    }
-  });
-}
-
-function renderTable(filterId = "") {
-  let table = `<table class="w-full border border-gray-300 text-sm">
-    <tr class="bg-gray-200">
-      <th class="border px-2 py-1">Student ID</th>
-      <th class="border px-2 py-1">Present</th>
-      <th class="border px-2 py-1">Absent</th>
-      <th class="border px-2 py-1">Percentage</th>
-    </tr>`;
-
-  for (let id in studentMap) {
-    if (filterId && !id.includes(filterId)) continue;
-
-    let presentDays = 0;
-    classDates.forEach(date => {
-      if (studentMap[id].has(date)) presentDays++;
-    });
-
-    const totalDays = classDates.length;
-    const absentDays = totalDays - presentDays;
-    const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(2) : 0;
-    const percentColor = percentage < 75 ? "text-red-600" : "text-green-600";
-
-    table += `<tr>
-      <td class="border px-2 py-1 font-medium">${id}</td>
-      <td class="border px-2 py-1 text-green-600 font-bold">${presentDays}</td>
-      <td class="border px-2 py-1 text-red-600 font-bold">${absentDays}</td>
-      <td class="border px-2 py-1 ${percentColor} font-bold">${percentage}%</td>
-    </tr>`;
-  }
-
-  table += `</table>`;
-  document.getElementById("result").innerHTML = table;
-}
-
-function applySearch() {
-  const filterId = document.getElementById("searchInput").value.trim();
-  renderTable(filterId);
-}
-
-fetchAttendance();
-</script>
+  </script>
 
 </body>
 </html>
