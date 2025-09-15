@@ -29,12 +29,9 @@
       // Replace FORM_ID and ENTRY_ID with your Google Form details
       const googleFormURL = `https://docs.google.com/forms/d/e/FORM_ID/viewform?usp=pp_url&entry.ENTRY_ID=${id}`;
 
-      // Redirect to Google Form pre-filled
       window.open(googleFormURL, "_blank");
-
-      // Show confirmation message
       document.getElementById("confirmation").textContent = 
-        "✅ Attendance submitted! Please complete the Google Form if not done already.";
+        "✅ Attendance submitted! Please complete the Google Form.";
     }
   </script>
 
