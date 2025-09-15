@@ -9,114 +9,132 @@
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-6">
 
-  <!-- Header -->
-  <div class="flex justify-between items-center mb-6">
+<div class="bg-white p-6 rounded-2xl shadow-md max-w-5xl mx-auto">
+  <!-- Header Section -->
+  <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold text-gray-800">📊 Teacher Dashboard</h1>
-    <button onclick="logout()" 
-      class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-      🚪 Logout
+    <a href="./index.html" 
+       class="px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition">
+       🚪 Logout
+    </a>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="flex items-center space-x-2 mb-4">
+    <input id="searchInput" 
+           type="text" 
+           placeholder="🔍 Search by Student ID..." 
+           class="px-4 py-2 border rounded-lg w-full">
+    <button onclick="applySearch()" 
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+      Search
     </button>
   </div>
 
-  <!-- Attendance Table -->
-  <div class="bg-white p-6 rounded-2xl shadow-md overflow-x-auto">
-    <table class="w-full border border-gray-300 text-sm" id="attendanceTable">
-      <thead class="bg-gray-200">
-        <tr>
-          <th class="border px-2 py-1">Student ID</th>
-          <th class="border px-2 py-1">Present</th>
-          <th class="border px-2 py-1">Absent</th>
-          <th class="border px-2 py-1">Percentage</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-  </div>
+  <!-- Table Container -->
+  <div id="result" class="mt-4 overflow-x-auto"></div>
+</div>
 
-  <script>
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
+<script>
+const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
 
-    const startDate = new Date("2025-09-15");
-    const today = new Date();
+const startDate = new Date("2025-09-15");
+const today = new Date();
 
-    // Generate class dates excluding Sundays
-    function generateClassDates(start, end) {
-      let dates = [];
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        if(d.getDay() !== 0) { 
-          dates.push(d.toISOString().split("T")[0]);
-        }
-      }
-      return dates;
+// Generate class dates excluding Sundays
+function generateClassDates(start, end) {
+  let dates = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    if (d.getDay() !== 0) {
+      dates.push(d.toISOString().split("T")[0]);
     }
+  }
+  return dates;
+}
 
-    function loadAttendance() {
-      Papa.parse(sheetUrl, {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-          const data = results.data;
+let studentMap = {};
+let classDates = [];
 
-          const normalizedData = data.map(row => {
-            let obj = {};
-            for (let key in row) {
-              obj[key.trim()] = row[key]?.trim();
-            }
-            return obj;
-          });
+function fetchAttendance() {
+  Papa.parse(sheetUrl, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      const data = results.data;
 
-          let studentMap = {};
+      // Normalize
+      const normalizedData = data.map(row => {
+        let obj = {};
+        for (let key in row) {
+          obj[key.trim()] = row[key]?.trim();
+        }
+        return obj;
+      });
 
-          normalizedData.forEach(row => {
-            const id = row["ID number"];
-            const timestamp = row["Timestamp"];
-            if(id && timestamp) {
-              let datePart = timestamp.split(" ")[0].trim();
-              let [day, month, year] = datePart.split("/");
-              if(day && month && year) {
-                const formattedDate = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
-                if(!studentMap[id]) studentMap[id] = new Set();
-                studentMap[id].add(formattedDate);
-              }
-            }
-          });
-
-          const classDates = generateClassDates(startDate, today);
-
-          const tbody = document.getElementById("tableBody");
-          tbody.innerHTML = "";
-
-          for (let id in studentMap) {
-            let presentDays = 0;
-            classDates.forEach(date => {
-              if(studentMap[id].has(date)) presentDays++;
-            });
-
-            const totalDays = classDates.length;
-            const absentDays = totalDays - presentDays;
-            const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(2) : 0;
-
-            const percentColor = percentage < 75 ? "text-red-600" : "text-green-600";
-
-            let row = `<tr>
-              <td class="border px-2 py-1 font-medium">${id}</td>
-              <td class="border px-2 py-1 text-green-600 font-bold">${presentDays}</td>
-              <td class="border px-2 py-1 text-red-600 font-bold">${absentDays}</td>
-              <td class="border px-2 py-1 ${percentColor} font-bold">${percentage}%</td>
-            </tr>`;
-            tbody.innerHTML += row;
+      // Map student IDs to their present dates
+      studentMap = {};
+      normalizedData.forEach(row => {
+        const id = row["ID number"];
+        const timestamp = row["Timestamp"];
+        if (id && timestamp) {
+          let datePart = timestamp.split(" ")[0].trim();
+          let [day, month, year] = datePart.split("/");
+          if (day && month && year) {
+            const formattedDate = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+            if (!studentMap[id]) studentMap[id] = new Set();
+            studentMap[id].add(formattedDate);
           }
         }
       });
-    }
 
-    function logout() {
-      window.location.href = "index.html";
+      classDates = generateClassDates(startDate, today);
+      renderTable();
     }
+  });
+}
 
-    loadAttendance();
-  </script>
+function renderTable(filterId = "") {
+  let table = `<table class="w-full border border-gray-300 text-sm">
+    <tr class="bg-gray-200">
+      <th class="border px-2 py-1">Student ID</th>
+      <th class="border px-2 py-1">Present</th>
+      <th class="border px-2 py-1">Absent</th>
+      <th class="border px-2 py-1">Percentage</th>
+    </tr>`;
+
+  for (let id in studentMap) {
+    if (filterId && !id.includes(filterId)) continue;
+
+    let presentDays = 0;
+    classDates.forEach(date => {
+      if (studentMap[id].has(date)) presentDays++;
+    });
+
+    const totalDays = classDates.length;
+    const absentDays = totalDays - presentDays;
+    const percentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(2) : 0;
+    const percentColor = percentage < 75 ? "text-red-600" : "text-green-600";
+
+    table += `<tr>
+      <td class="border px-2 py-1 font-medium">${id}</td>
+      <td class="border px-2 py-1 text-green-600 font-bold">${presentDays}</td>
+      <td class="border px-2 py-1 text-red-600 font-bold">${absentDays}</td>
+      <td class="border px-2 py-1 ${percentColor} font-bold">${percentage}%</td>
+    </tr>`;
+  }
+
+  table += `</table>`;
+  document.getElementById("result").innerHTML = table;
+}
+
+function applySearch() {
+  const filterId = document.getElementById("searchInput").value.trim();
+  renderTable(filterId);
+}
+
+fetchAttendance();
+</script>
 
 </body>
 </html>
