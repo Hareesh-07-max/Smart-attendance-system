@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Teacher Login - Smart Attendance System</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -11,13 +11,15 @@
   <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-sm">
     <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">👩‍🏫 Teacher Login</h1>
 
+    <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
     <input id="username" type="text" placeholder="Username"
-      class="w-full mb-4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+      class="w-full mb-4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" />
 
+    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
     <input id="password" type="password" placeholder="Password"
-      class="w-full mb-6 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+      class="w-full mb-6 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" />
 
-    <button onclick="login()" 
+    <button id="loginBtn"
       class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
       🔑 Login
     </button>
@@ -26,17 +28,54 @@
   </div>
 
   <script>
-    function login() {
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
+    // Demo credentials
+    const CREDENTIALS = {
+      "teacher": "1234",
+      "teacher1": "pass@123"
+    };
 
-      // Example login (you can change credentials)
-      if(username === "teacher" && password === "teach@123") {
-        window.location.href = "teacher_dashboard.html"; // Redirect to dashboard
+    const usernameInput = document.getElementById("username");
+    const passwordInput = document.getElementById("password");
+    const errorEl = document.getElementById("error");
+    const loginBtn = document.getElementById("loginBtn");
+
+    function showError(message = "Invalid username or password") {
+      errorEl.textContent = message;
+      errorEl.classList.remove("hidden");
+    }
+
+    function hideError() {
+      errorEl.classList.add("hidden");
+    }
+
+    function login() {
+      hideError();
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      if (!username || !password) {
+        showError("Please enter username and password");
+        return;
+      }
+
+      if (CREDENTIALS[username] && CREDENTIALS[username] === password) {
+        // Save logged-in teacher for dashboard checks
+        localStorage.setItem("loggedInTeacher", username);
+        // Redirect to dashboard
+        window.location.href = "teacher_dashboard.html";
       } else {
-        document.getElementById("error").classList.remove("hidden");
+        showError();
       }
     }
+
+    // Support Enter key
+    [usernameInput, passwordInput].forEach(el => {
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") login();
+      });
+    });
+
+    loginBtn.addEventListener("click", login);
   </script>
 
 </body>
