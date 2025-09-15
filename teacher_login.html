@@ -19,7 +19,7 @@
     <input id="password" type="password" placeholder="Password"
       class="w-full mb-6 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" />
 
-    <button id="loginBtn"
+    <button onclick="login()"
       class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
       🔑 Login
     </button>
@@ -28,54 +28,20 @@
   </div>
 
   <script>
-    // Demo credentials
-    const CREDENTIALS = {
-      "teacher": "1234",
-      "teacher1": "pass@123"
-    };
-
-    const usernameInput = document.getElementById("username");
-    const passwordInput = document.getElementById("password");
-    const errorEl = document.getElementById("error");
-    const loginBtn = document.getElementById("loginBtn");
-
-    function showError(message = "Invalid username or password") {
-      errorEl.textContent = message;
-      errorEl.classList.remove("hidden");
-    }
-
-    function hideError() {
-      errorEl.classList.add("hidden");
-    }
-
     function login() {
-      hideError();
-      const username = usernameInput.value.trim();
-      const password = passwordInput.value.trim();
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const errorEl = document.getElementById("error");
 
-      if (!username || !password) {
-        showError("Please enter username and password");
-        return;
-      }
-
-      if (CREDENTIALS[username] && CREDENTIALS[username] === password) {
-        // Save logged-in teacher for dashboard checks
+      // Demo credentials
+      if ((username === "teacher" && password === "1234") ||
+          (username === "teacher1" && password === "pass@123")) {
         localStorage.setItem("loggedInTeacher", username);
-        // Redirect to dashboard
         window.location.href = "teacher_dashboard.html";
       } else {
-        showError();
+        errorEl.classList.remove("hidden");
       }
     }
-
-    // Support Enter key
-    [usernameInput, passwordInput].forEach(el => {
-      el.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") login();
-      });
-    });
-
-    loginBtn.addEventListener("click", login);
   </script>
 
 </body>
