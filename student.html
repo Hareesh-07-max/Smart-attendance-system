@@ -29,9 +29,12 @@
       // Replace FORM_ID and ENTRY_ID with your Google Form details
       const googleFormURL = `https://docs.google.com/forms/d/e/FORM_ID/viewform?usp=pp_url&entry.ENTRY_ID=${id}`;
 
+      // Open form in new tab
       window.open(googleFormURL, "_blank");
+
+      // Show confirmation
       document.getElementById("confirmation").textContent = 
-        "✅ Attendance submitted! Please complete the Google Form.";
+        "✅ Attendance submitted! It may take a few seconds to appear on the dashboard.";
     }
   </script>
 
