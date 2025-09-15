@@ -3,120 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Dashboard - Attendance Summary</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #eef; }
-    h2 { text-align: center; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background: #007BFF; color: white; }
-    .low { background: #ffcdd2; font-weight: bold; }
-    #searchContainer { margin-top: 20px; text-align: center; }
-    #searchContainer input { padding: 5px; width: 200px; }
-    #searchContainer button { padding: 5px 10px; }
-  </style>
+  <title>Teacher Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h2>Teacher Dashboard - Attendance Summary</h2>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col items-center p-6">
 
-  <div id="searchContainer">
-    <input type="text" id="studentId" placeholder="Enter Student ID">
-    <button onclick="searchStudent()">Search</button>
+  <div class="bg-white p-6 rounded-xl shadow-md w-full max-w-6xl">
+    <h1 id="welcomeMsg" class="text-2xl font-bold text-gray-800 mb-6 text-center">👩‍🏫 Welcome Teacher</h1>
+
+    <!-- Google Sheet Embed -->
+    <h2 class="text-xl font-semibold text-gray-800 mb-4">📊 Attendance Records (Google Sheet)</h2>
+    <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pubhtml?widget=true&amp;headers=false"
+      width="100%" height="400px" class="mb-6"></iframe>
+
+    <!-- Search Bar -->
+    <div class="mb-4 flex justify-end">
+      <input type="text" id="searchBox" placeholder="🔍 Search by ID or Name..." 
+        class="border border-gray-300 px-4 py-2 rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+    </div>
+
+    <!-- Attendance Table -->
+    <h2 class="text-xl font-semibold text-gray-800 mb-4">📋 Student Attendance Summary</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full border border-gray-300 text-center" id="attendanceTableWrapper">
+        <thead class="bg-indigo-200">
+          <tr>
+            <th class="border px-4 py-2">ID Number</th>
+            <th class="border px-4 py-2">Name</th>
+            <th class="border px-4 py-2">Total Classes</th>
+            <th class="border px-4 py-2">Present</th>
+            <th class="border px-4 py-2">Attendance %</th>
+          </tr>
+        </thead>
+        <tbody id="attendanceTable" class="bg-white"></tbody>
+      </table>
+    </div>
+
+    <!-- Buttons -->
+    <div class="mt-6 flex justify-between">
+      <a href="teacher_login.html" onclick="localStorage.removeItem('loggedInTeacher')" 
+         class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+        ⬅️ Logout
+      </a>
+      <a href="index.html" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+        🏠 Back to Home
+      </a>
+    </div>
   </div>
 
-  <div id="summary">Loading attendance...</div>
-
-  <script src="https://cdn.jsdelivr.net/npm/tabletop@1.6.0/tabletop.min.js"></script>
   <script>
-    const publicSpreadsheetUrl = "https://docs.google.com/spreadsheets/d/1HA2iN2wmwGbCroDJkL7PQcJFCZ-tEbq6nZ_swO3C-0E/pubhtml";
-    let attendanceData = {}; // Will store processed attendance
-    let totalDays = 0;
+    // Check login
+    const teacher = localStorage.getItem("loggedInTeacher");
+    if (teacher) {
+      document.getElementById("welcomeMsg").textContent = `👩‍🏫 Welcome, ${teacher}!`;
+    } else {
+      window.location.href = "teacher_login.html";
+    }
 
-    function processAttendance(data) {
-      const startDate = new Date("2025-09-08");
-      const endDate = new Date("2025-09-28");
+    // Load student data
+    let allRows = [];
 
-      totalDays = 0;
-      let allDates = [];
-      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        if (d.getDay() !== 0) { // exclude Sundays
-          totalDays++;
-          allDates.push(new Date(d).toISOString().split("T")[0]);
-        }
+    async function loadAttendance() {
+      try {
+        const response = await fetch("students.csv");
+        const data = await response.text();
+        const rows = data.trim().split("\n").map(r => r.split(","));
+
+        const header = rows[0]; 
+        const idIndex = header.indexOf("ID Number");
+        const nameIndex = header.indexOf("Name");
+
+        const attendanceData = {};
+        rows.slice(1).forEach(row => {
+          const id = row[idIndex];
+          const name = row[nameIndex];
+          if (!attendanceData[id]) {
+            attendanceData[id] = { name, total: 0, present: 0 };
+          }
+          attendanceData[id].total++;
+          if (row.includes("Present")) {
+            attendanceData[id].present++;
+          }
+        });
+
+        allRows = Object.keys(attendanceData).map(id => {
+          const s = attendanceData[id];
+          const percent = ((s.present / s.total) * 100).toFixed(2);
+          return {
+            id, 
+            name: s.name, 
+            total: s.total, 
+            present: s.present, 
+            percent
+          };
+        });
+
+        renderTable(allRows);
+
+      } catch (err) {
+        console.error("Error loading attendance:", err);
       }
+    }
 
-      attendanceData = {};
-      data.forEach(r => {
-        let id = r["ID number"]?.trim();
-        let date = new Date(r["Timestamp"]).toISOString().split("T")[0];
-        if (id && allDates.includes(date)) {
-          if (!attendanceData[id]) attendanceData[id] = new Set();
-          attendanceData[id].add(date);
-        }
+    function renderTable(rows) {
+      const table = document.getElementById("attendanceTable");
+      table.innerHTML = "";
+      rows.forEach(s => {
+        table.innerHTML += `
+          <tr>
+            <td class="border px-4 py-2">${s.id}</td>
+            <td class="border px-4 py-2">${s.name}</td>
+            <td class="border px-4 py-2">${s.total}</td>
+            <td class="border px-4 py-2">${s.present}</td>
+            <td class="border px-4 py-2">${s.percent}%</td>
+          </tr>`;
       });
     }
 
-    function displayAll() {
-      let tableRows = Object.keys(attendanceData)
-        .sort((a, b) => a.localeCompare(b))
-        .map(id => {
-          let present = attendanceData[id].size;
-          let percent = ((present / totalDays) * 100).toFixed(2);
-          let rowClass = percent < 75 ? "low" : "";
-          return `<tr class="${rowClass}">
-                    <td>${id}</td>
-                    <td>${present}</td>
-                    <td>${totalDays - present}</td>
-                    <td>${percent}%</td>
-                  </tr>`;
-        }).join("");
+    // Search function
+    document.getElementById("searchBox").addEventListener("input", function() {
+      const query = this.value.toLowerCase();
+      const filtered = allRows.filter(s => 
+        s.id.toLowerCase().includes(query) || s.name.toLowerCase().includes(query)
+      );
+      renderTable(filtered);
+    });
 
-      document.getElementById("summary").innerHTML = `
-        <table>
-          <tr><th>ID Number</th><th>Present</th><th>Absent</th><th>Percentage</th></tr>
-          ${tableRows}
-        </table>
-      `;
-    }
-
-    function searchStudent() {
-      const id = document.getElementById("studentId").value.trim();
-      if (!id) return displayAll();
-
-      if (!attendanceData[id]) {
-        document.getElementById("summary").innerHTML = `<p style="color:red;text-align:center;">Student ID "${id}" not found.</p>`;
-        return;
-      }
-
-      let present = attendanceData[id].size;
-      let percent = ((present / totalDays) * 100).toFixed(2);
-      let rowClass = percent < 75 ? "low" : "";
-
-      document.getElementById("summary").innerHTML = `
-        <table>
-          <tr><th>ID Number</th><th>Present</th><th>Absent</th><th>Percentage</th></tr>
-          <tr class="${rowClass}">
-            <td>${id}</td>
-            <td>${present}</td>
-            <td>${totalDays - present}</td>
-            <td>${percent}%</td>
-          </tr>
-        </table>
-      `;
-    }
-
-    function init() {
-      Tabletop.init({
-        key: publicSpreadsheetUrl,
-        simpleSheet: true,
-        callback: function(data) {
-          processAttendance(data);
-          displayAll();
-        }
-      });
-    }
-
-    window.addEventListener('DOMContentLoaded', init);
+    loadAttendance();
   </script>
+
 </body>
 </html>
