@@ -9,16 +9,11 @@
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-6">
 
   <div class="bg-white p-6 rounded-2xl shadow-md max-w-5xl mx-auto">
-    <h1 id="welcomeMsg" class="text-2xl font-bold text-gray-800 mb-4">
-      👩‍🏫 Welcome, Teacher
-    </h1>
+    <h1 id="welcomeMsg" class="text-2xl font-bold text-gray-800 mb-4">👩‍🏫 Welcome, Teacher</h1>
 
     <h2 class="text-xl font-semibold text-gray-700 mb-2">📊 Attendance Summary</h2>
-
-    <!-- Total Classes -->
     <p id="totalClasses" class="font-bold mb-3 text-gray-700"></p>
 
-    <!-- Summary Table -->
     <div id="attendanceSummary" class="overflow-x-auto"></div>
 
     <div class="mt-6 text-center">
@@ -32,7 +27,6 @@
   <script>
     const teacher = localStorage.getItem("loggedInTeacher");
     const welcomeMsg = document.getElementById("welcomeMsg");
-
     if (teacher) {
       welcomeMsg.textContent = `👩‍🏫 Welcome, ${teacher}`;
     } else {
@@ -44,8 +38,8 @@
       window.location.href = "teacher_login.html";
     });
 
-    // === Attendance Summary ===
-    const sheetUrl = "attendance.csv"; // CSV in same folder
+    // ==== Fetch Attendance from Published Google Sheet ====
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
 
     async function loadAttendanceSummary() {
       const res = await fetch(sheetUrl);
@@ -56,10 +50,8 @@
       const dateIndex = headers.indexOf("Timestamp");
       const idIndex = headers.indexOf("ID number");
 
-      // Collect all student IDs
+      // Map studentID → Set of attended dates
       let studentMap = {};
-
-      // Generate class dates (Mon–Sat)
       const startDate = new Date("2025-09-08");
       const endDate = new Date("2025-09-28");
       let classDates = [];
@@ -67,8 +59,6 @@
         if (d.getDay() !== 0) classDates.push(d.toISOString().split("T")[0]);
       }
       const totalClasses = classDates.length;
-
-      // Display total classes
       document.getElementById("totalClasses").textContent = `📅 Total Classes Conducted: ${totalClasses}`;
 
       rows.slice(1).forEach(row => {
@@ -77,8 +67,7 @@
         let timestamp = row[dateIndex]?.replace(/"/g,'').trim();
         if (!id || !timestamp) return;
 
-        let dateOnly = timestamp.split(" ")[0];
-        const parts = dateOnly.split("/");
+        let parts = timestamp.split("/");
         if (parts.length === 3) {
           const formattedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
           if (!studentMap[id]) studentMap[id] = new Set();
@@ -86,7 +75,7 @@
         }
       });
 
-      // Build summary table
+      // Build table
       let table = `<table class="w-full border border-gray-300 text-sm">
         <tr class="bg-gray-200">
           <th class="border px-2 py-1">Student ID</th>
