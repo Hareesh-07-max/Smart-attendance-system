@@ -6,15 +6,17 @@
   <title>Student Attendance Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-6">
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-6">
 
-  <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md text-center">
-    <h1 class="text-2xl font-bold mb-4">🎓 Student Attendance Portal</h1>
+  <div class="bg-white p-6 rounded-2xl shadow-md max-w-md mx-auto text-center">
+    <h1 class="text-2xl font-bold text-gray-800 mb-4">🎓 Student Attendance Portal</h1>
 
-    <input id="studentId" type="text" placeholder="Enter your Student ID"
+    <p class="mb-4">Scan your QR code or enter your Student ID to submit attendance:</p>
+
+    <input id="studentId" type="text" placeholder="Student ID"
            class="px-4 py-2 border rounded-lg w-full mb-4">
     <button onclick="submitAttendance()"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 w-full">
+            class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
       ✅ Submit Attendance
     </button>
 
@@ -22,19 +24,29 @@
   </div>
 
   <script>
+    // Google Form details
+    const FORM_ID = "YOUR_GOOGLE_FORM_ID";      // replace with your Form ID
+    const ENTRY_ID = "YOUR_GOOGLE_ENTRY_ID";    // replace with your Form Entry ID
+
     function submitAttendance() {
       const id = document.getElementById("studentId").value.trim();
       if (!id) return alert("Please enter your Student ID!");
 
-      // Replace FORM_ID and ENTRY_ID with your Google Form details
-      const googleFormURL = `https://docs.google.com/forms/d/e/FORM_ID/viewform?usp=pp_url&entry.ENTRY_ID=${id}`;
-
-      // Open form in new tab
+      // Open Google Form with ID pre-filled
+      const googleFormURL = `https://docs.google.com/forms/d/e/${FORM_ID}/viewform?usp=pp_url&entry.${ENTRY_ID}=${id}`;
       window.open(googleFormURL, "_blank");
 
-      // Show confirmation
+      // Show confirmation message
       document.getElementById("confirmation").textContent = 
-        "✅ Attendance submitted! It may take a few seconds to appear on the dashboard.";
+        "✅ Attendance submitted! Please complete the Google Form if required.";
+    }
+
+    // Auto-submit if QR passes ID via URL ?id=R230557
+    const urlParams = new URLSearchParams(window.location.search);
+    const qrId = urlParams.get("id");
+    if (qrId) {
+      document.getElementById("studentId").value = qrId;
+      submitAttendance();
     }
   </script>
 
