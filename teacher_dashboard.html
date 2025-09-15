@@ -14,7 +14,7 @@
 
   <!-- Search bar -->
   <div class="flex gap-2 mb-4">
-    <input id="searchInput" type="text" placeholder="🔍 Search by ID or Name"
+    <input id="searchInput" type="text" placeholder="🔍 Search by ID"
            class="flex-1 px-4 py-2 border rounded-lg">
     <button onclick="fetchAllAttendance()"
             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
@@ -23,6 +23,11 @@
   </div>
 
   <div id="result" class="mt-4 overflow-x-auto"></div>
+
+  <!-- Back to Home button -->
+  <div class="mt-4 text-center">
+    <a href="index.html" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">⬅️ Back to Home</a>
+  </div>
 </div>
 
 <script>
@@ -65,14 +70,13 @@ function fetchAllAttendance() {
 
       data.forEach(row => {
         const id = row["ID number"];
-        const name = row["Name"];
         const timestamp = row["Timestamp"];
         if(id && timestamp) {
           let datePart = timestamp.split(" ")[0].trim();
           let [day, month, year] = datePart.split("/");
           if(day && month && year) {
             const formattedDate = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
-            if(!globalStudents[id]) globalStudents[id] = { name: name || id, dates: new Set() };
+            if(!globalStudents[id]) globalStudents[id] = { dates: new Set() };
             globalStudents[id].dates.add(formattedDate);
           }
         }
@@ -90,18 +94,15 @@ function renderTable() {
   let table = `<table class="w-full border border-gray-300 text-sm">
     <tr class="bg-gray-200">
       <th class="border px-2 py-1">ID</th>
-      <th class="border px-2 py-1">Name</th>
       <th class="border px-2 py-1">Present</th>
       <th class="border px-2 py-1">Absent</th>
       <th class="border px-2 py-1">Percentage</th>
     </tr>`;
 
   for (let id in globalStudents) {
-    const student = globalStudents[id];
-    if(searchQuery && !(id.toLowerCase().includes(searchQuery) || student.name.toLowerCase().includes(searchQuery))) {
-      continue;
-    }
+    if(searchQuery && !id.toLowerCase().includes(searchQuery)) continue;
 
+    const student = globalStudents[id];
     let presentDays = 0;
     classDates.forEach(date => {
       if(student.dates.has(date)) presentDays++;
@@ -114,7 +115,6 @@ function renderTable() {
 
     table += `<tr>
       <td class="border px-2 py-1">${id}</td>
-      <td class="border px-2 py-1">${student.name}</td>
       <td class="border px-2 py-1 text-green-600 font-bold">${presentDays}</td>
       <td class="border px-2 py-1 text-red-600 font-bold">${absentDays}</td>
       <td class="border px-2 py-1 ${percentColor} font-bold">${percentage}%</td>
