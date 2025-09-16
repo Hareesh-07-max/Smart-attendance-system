@@ -38,6 +38,11 @@
         <button id="fill2" class="flex-1 px-2 py-1 bg-indigo-100 rounded hover:bg-indigo-200">teacher1 / pass@123</button>
       </div>
     </div>
+
+    <!-- Back to Home -->
+    <div class="mt-4 text-center">
+      <a href="index.html" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">⬅️ Back to Home</a>
+    </div>
   </div>
 
   <script>
@@ -74,9 +79,10 @@
       }
 
       if (CREDENTIALS[username] && CREDENTIALS[username] === password) {
-        // store in sessionStorage only
+        // ✅ store login info in sessionStorage
         sessionStorage.setItem("loggedInTeacher", username);
-        // redirect
+
+        // ✅ redirect to dashboard
         window.location.href = "teacher_dashboard.html";
       } else {
         showError("Invalid username or password. Use demo autofill if needed.");
