@@ -23,7 +23,7 @@
         class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700">👁</button>
     </div>
 
-    <div class="text-center mb-4">
+    <div class="text-center">
       <button id="loginBtn"
         class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">🔑 Login</button>
     </div>
@@ -66,16 +66,17 @@
     function login() {
       hideError();
       const username = usernameEl.value.trim();
-      const password = passwordEl.value; // keep original (don't trim password)
+      const password = passwordEl.value;
 
       if (!username || !password) {
         showError("Please enter username and password");
         return;
       }
 
-      // check credentials (demo)
       if (CREDENTIALS[username] && CREDENTIALS[username] === password) {
-        // redirect to dashboard
+        // store in sessionStorage only
+        sessionStorage.setItem("loggedInTeacher", username);
+        // redirect
         window.location.href = "teacher_dashboard.html";
       } else {
         showError("Invalid username or password. Use demo autofill if needed.");
@@ -105,6 +106,7 @@
       if (e.key === "Enter") login();
     }));
 
+    loginBtn.addEventListener("click", login);
   </script>
 </body>
 </html>
