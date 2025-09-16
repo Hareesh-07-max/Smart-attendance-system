@@ -24,13 +24,29 @@
 
   <div id="result" class="mt-4 overflow-x-auto"></div>
 
-  <!-- Back to Home button -->
-  <div class="mt-4 text-center">
+  <!-- Buttons -->
+  <div class="mt-4 flex justify-between">
     <a href="index.html" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">⬅️ Back to Home</a>
+    <button onclick="logout()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">🚪 Logout</button>
   </div>
 </div>
 
 <script>
+/* ✅ Login check */
+window.onload = function() {
+  const loggedIn = sessionStorage.getItem("teacherLoggedIn");
+  if (!loggedIn || loggedIn !== "true") {
+    alert("Please login first!");
+    window.location.href = "teacher_login.html";
+  }
+};
+
+function logout() {
+  sessionStorage.removeItem("teacherLoggedIn");
+  alert("Logged out successfully!");
+  window.location.href = "teacher_login.html";
+}
+
 const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdMHIJ5IUW60rjdruE-lh96vAEcaJxbL55h-P2AKnbLwu45xgRMmU-fEoO3lwS8ypeIzZjpGmzHbvF/pub?output=csv";
 const startDate = new Date("2025-09-15");
 const endDate = new Date("2025-09-28");
@@ -71,12 +87,12 @@ function fetchAllAttendance() {
       data.forEach(row => {
         const id = row["ID number"];
         const timestamp = row["Timestamp"];
-        if(id && timestamp) {
+        if (id && timestamp) {
           let datePart = timestamp.split(" ")[0].trim();
           let [day, month, year] = datePart.split("/");
-          if(day && month && year) {
+          if (day && month && year) {
             const formattedDate = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
-            if(!globalStudents[id]) globalStudents[id] = { dates: new Set() };
+            if (!globalStudents[id]) globalStudents[id] = { dates: new Set() };
             globalStudents[id].dates.add(formattedDate);
           }
         }
@@ -100,12 +116,12 @@ function renderTable() {
     </tr>`;
 
   for (let id in globalStudents) {
-    if(searchQuery && !id.toLowerCase().includes(searchQuery)) continue;
+    if (searchQuery && !id.toLowerCase().includes(searchQuery)) continue;
 
     const student = globalStudents[id];
     let presentDays = 0;
     classDates.forEach(date => {
-      if(student.dates.has(date)) presentDays++;
+      if (student.dates.has(date)) presentDays++;
     });
 
     const totalDays = classDates.length;
