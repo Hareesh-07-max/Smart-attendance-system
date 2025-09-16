@@ -32,16 +32,17 @@
 </div>
 
 <script>
-/* ✅ Silent login check (no popup) */
+/* ✅ Login check */
 window.onload = function() {
   const loggedIn = sessionStorage.getItem("teacherLoggedIn");
-  if (!loggedIn || loggedIn !== "true") {
+  if (!loggedIn) {
     window.location.href = "teacher_login.html";
   }
 };
 
 function logout() {
   sessionStorage.removeItem("teacherLoggedIn");
+  sessionStorage.removeItem("loggedInTeacher");
   window.location.href = "teacher_login.html";
 }
 
@@ -52,6 +53,7 @@ const endDate = new Date("2025-09-28");
 let globalStudents = {};
 let globalClassDates = [];
 
+// Generate class dates excluding Sundays and only up to today
 function generateClassDates(start, end) {
   let dates = [];
   const todayStr = new Date().toISOString().split("T")[0];
@@ -140,6 +142,7 @@ function renderTable() {
   document.getElementById("result").innerHTML = table;
 }
 
+// Enable live search
 document.getElementById("searchInput").addEventListener("input", renderTable);
 </script>
 
